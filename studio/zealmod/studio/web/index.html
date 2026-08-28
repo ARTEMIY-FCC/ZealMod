@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZealMod Studio</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8eaf6'/%3E%3Cpath d='M9 9h14l-9 9h9v5H8l9-9H9z' fill='%23111'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 32 32" class="logo" aria-hidden="true">
+      <rect width="32" height="32" rx="8"/><path d="M9 9h14l-9 9h9v5H8l9-9H9z"/>
+    </svg>
+    <div>
+      <h1>ZealMod Studio</h1>
+      <p id="sub">собираем прошивку…</p>
+    </div>
+  </div>
+  <div class="dev">
+    <span id="devdot" class="dot"></span>
+    <select id="port" title="порт таймера"></select>
+    <button id="rescan" class="ghost" title="искать заново">⟳</button>
+  </div>
+</header>
+
+<main>
+  <!-- ЛЕВО: что поставить -->
+  <section class="col apps">
+    <div class="head">
+      <h2>Программы</h2>
+      <span class="hint"><span id="picked">0</span> выбрано</span>
+    </div>
+    <div id="list" class="list"></div>
+    <div class="row">
+      <button id="addmod" class="ghost">+ добавить .zm</button>
+      <button id="allon" class="ghost">все</button>
+      <button id="alloff" class="ghost">никого</button>
+    </div>
+    <p class="tip">Порядок в списке — порядок в меню часов. Перетаскивайте мышью.</p>
+  </section>
+
+  <!-- ЦЕНТР: как это выглядит -->
+  <section class="col look">
+    <div class="head"><h2>Вид</h2></div>
+    <div class="screen">
+      <canvas id="preview" width="240" height="240"></canvas>
+      <div class="bezel"><span></span><span></span></div>
+    </div>
+    <div class="field">
+      <label>Тема</label>
+      <div class="row">
+        <select id="theme"></select>
+        <button id="addtheme" class="ghost" title="загрузить свою">+ .zt</button>
+      </div>
+      <div id="swatches" class="swatches"></div>
+    </div>
+    <div class="field">
+      <label>Меню</label>
+      <div class="seg" id="layout">
+        <button data-v="0" class="on">обложки</button>
+        <button data-v="1">сетка</button>
+        <button data-v="2">список</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ПРАВО: настройки -->
+  <section class="col cfg">
+    <div class="head"><h2>Кнопки и настройки</h2></div>
+
+    <div class="field">
+      <label>Назначение кнопок</label>
+      <p class="tip">У таймера четыре кнопки: две над экраном и две под ним.
+        Если стрелки перепутаны — поменяйте местами.</p>
+      <div class="btnmap" id="btnmap"></div>
+    </div>
+
+    <div class="field">
+      <label>Вход в меню</label>
+      <div class="row">
+        <select id="menubtn"></select>
+        <input id="menuhold" type="range" min="600" max="3000" step="100" value="1500">
+        <span class="val" id="menuholdv">1,5 с</span>
+      </div>
+      <p class="tip">Держите эту кнопку столько времени на экране таймера — откроется ZealMod.</p>
+    </div>
+
+    <div class="field">
+      <label>Выход из программы</label>
+      <div class="row">
+        <input id="exithold" type="range" min="600" max="3000" step="100" value="1400">
+        <span class="val" id="exitholdv">1,4 с</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Разное</label>
+      <label class="check"><input type="checkbox" id="splash" checked> заставка при запуске</label>
+      <label class="check"><input type="checkbox" id="snd" checked> звук</label>
+      <label class="check"><input type="checkbox" id="mute" checked> глушить писк прошивки</label>
+    </div>
+
+    <div class="field">
+      <label>Часы</label>
+      <div class="row wrap">
+        <button id="backup" class="ghost">копия флеша</button>
+        <button id="stock" class="ghost danger">вернуть заводскую</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="usage">
+    <div class="bar"><i id="barfill"></i><i id="barfree"></i></div>
+    <div class="nums"><span id="usage">—</span></div>
+  </div>
+  <div class="actions">
+    <button id="export" class="ghost">сохранить .gbl</button>
+    <button id="flash" class="primary">прошить таймер</button>
+  </div>
+</footer>
+
+<div id="log" class="log hidden">
+  <div class="logbox">
+    <div class="loghead"><b id="logtitle">Заливка</b><button id="logclose" class="ghost">закрыть</button></div>
+    <pre id="logtext"></pre>
+  </div>
+</div>
+
+<div id="drop" class="drop hidden"><div>отпустите — поставим .zm или .zt</div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

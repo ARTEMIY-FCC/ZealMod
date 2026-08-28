@@ -1,0 +1,15 @@
+{
+  "id": "blobik",
+  "name": "blobik",
+  "version": "1.0",
+  "author": "я",
+  "kind": "game",
+  "entry": "zm_main",
+  "exit_button": "up",
+  "exit_hold": 1.4,
+  "description": "Что эта программа делает.",
+  "cover": "cover.png",
+  "sources": [
+    "src/main.c"
+  ]
+}

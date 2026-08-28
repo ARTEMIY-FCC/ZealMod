@@ -1,0 +1,20 @@
+{
+  "id": "zeal-v1",
+  "name": "Zeal Smart Timer",
+  "chip": "esp32c3",
+  "screen": [240, 240],
+  "buttons": ["up", "down", "left", "right"],
+  "base_sha256": "de2d499bbd38b1152312fa3a392f4d80f451c976177de1243d9a365d57153359",
+  "base_note": "стоковая прошивка ZealSmartTimwer из раздела ota_0",
+  "flash": { "ota0": 1048576, "ota0_size": 2097152, "ota1": 3145728, "otadata": 57344 },
+  "usb": [["303a", "1001"]],
+  "max_code_pages": 6,
+  "hooks": [
+    { "addr": "0x42004C76", "symbol": "zg_hook_boot",  "expect": "397126da",
+      "note": "пролог TDisplay_task: отсюда мод стартует" },
+    { "addr": "0x42005D96", "symbol": "zg_hook_flush", "expect": "ae873287",
+      "note": "flush-колбэк LVGL: отсюда мод забирает экран" },
+    { "addr": "0x42005426", "symbol": "zg_hook_keys",  "expect": "03470900",
+      "note": "рассылка событий кнопок: глушим свои удержания" }
+  ]
+}
