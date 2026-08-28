@@ -4,6 +4,7 @@
 так одинаково работает и на macOS, и на Windows, и на Linux, и ничего, кроме
 Python, ставить не нужно.  Наружу ничего не слушает — только 127.0.0.1.
 """
+import errno
 import io
 import json
 import mimetypes
@@ -84,6 +85,10 @@ class Studio:
         return known + sorted(set(self.lib) - set(known))
 
     def modules_json(self, lang='en'):
+        # файл могли удалить у нас за спиной — тогда просто забываем о нём,
+        # а не роняем всё окно
+        for mid in [k for k, v in self.lib.items() if not Path(v[2]).exists()]:
+            del self.lib[mid]
         out = []
         for mid in self.order():
             m, man, path = self.lib[mid]
@@ -362,13 +367,49 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_bytes(p.read_bytes(), ctype)
 
 
+def _studio_at(port, timeout=1.0):
+    """Кто занял порт: если это уже открытая Studio — чей она комплект."""
+    import urllib.error
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f'http://127.0.0.1:{port}/api/state',
+                                    timeout=timeout) as r:
+            d = json.load(r)
+        return str(d.get('bundle')) if d.get('version') else None
+    except (OSError, urllib.error.URLError, ValueError):
+        return None
+
+
+def _listen(port, tries=20):
+    """Занятый порт — не повод падать: берём следующий свободный.
+    Возвращает (сервер, порт)."""
+    for p in range(port, port + tries):
+        try:
+            return ThreadingHTTPServer(('127.0.0.1', p), Handler), p
+        except OSError as e:
+            if e.errno != errno.EADDRINUSE:
+                raise
+    raise OSError(f'ports {port}..{port + tries - 1} are all busy; '
+                  f'free one or pass --port')
+
+
 def serve(bundle, port=8777, open_browser=True, profile='zeal-v1'):
+    want = port
+    if _studio_at(want) == str(bundle.root):     # уже открыта, и на том же комплекте
+        url = f'http://127.0.0.1:{want}/'
+        print(f'ZealMod Studio is already open at {url} — showing that window')
+        print('  (stop it with Ctrl+C in its terminal, or start another with --port)')
+        if open_browser:
+            webbrowser.open(url)
+        return 0
     Handler.studio = Studio(bundle, profile)
-    httpd = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    httpd, port = _listen(want)
     url = f'http://127.0.0.1:{port}/'
     print(f'ZealMod Studio {__version__}')
     print(f'  kit:  {bundle.root}')
     print(f'  open: {url}   (Ctrl+C to stop)')
+    if port != want:
+        print(f'  (port {want} was busy, took the next free one)')
     if open_browser:
         threading.Timer(0.4, lambda: webbrowser.open(url)).start()
     try:
@@ -377,3 +418,4 @@ def serve(bundle, port=8777, open_browser=True, profile='zeal-v1'):
         print('\nbye')
     finally:
         httpd.server_close()
+    return 0

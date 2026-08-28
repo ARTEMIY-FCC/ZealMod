@@ -1,0 +1,6 @@
+# следы сборки самого инструмента (pip install studio/)
+__pycache__/
+*.pyc
+studio/zealmod.egg-info/
+studio/build/
+studio/dist/

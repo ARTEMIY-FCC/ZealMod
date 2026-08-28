@@ -188,8 +188,15 @@ def cmd_pack(args):
     if not manf.exists():
         print(f'{manf} not found')
         return 1
+    if not b.sdk.exists():
+        print(f'no SDK headers at {b.sdk}\n'
+              f'  run pack inside a ZealMod kit, or point at one:\n'
+              f'  zealmod --bundle /path/to/zealmod pack {args.dir}')
+        return 1
     spec = json.loads(manf.read_text('utf-8'))
-    out = Path(args.out or b.dist / 'modules')
+    # без комплекта под рукой (например, установленный zealmod вне репозитория)
+    # кладём .zm рядом с исходниками
+    out = Path(args.out or (b.dist / 'modules' if b.dist.exists() else src))
     try:
         p = mkmod.build_module(spec, src, out, src, src / 'build',
                                includes=[b.sdk])
@@ -255,8 +262,7 @@ def cmd_backup(args):
 
 def cmd_studio(args):
     from .studio.server import serve
-    serve(_bundle(args), port=args.port, open_browser=not args.no_browser)
-    return 0
+    return serve(_bundle(args), port=args.port, open_browser=not args.no_browser) or 0
 
 
 def cmd_emu(args):

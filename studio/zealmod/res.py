@@ -19,12 +19,34 @@ def _first(*paths):
     return None
 
 
+# по этим приметам каталог узнаётся как комплект ZealMod
+MARKS = ('dist/core/zealmod-core.elf', 'dist/modules', 'modules/builtin.json',
+         'work/src/plat.h')
+
+
+def _is_kit(p: Path):
+    return any((p / m).exists() for m in MARKS)
+
+
+def _find_root():
+    """Где лежит комплект: рядом с программой или выше по дереву от текущего
+    каталога — чтобы `zealmod` работал и из подпапки, и будучи установленным."""
+    near = HERE.parents[1]
+    if _is_kit(near):
+        return near
+    cwd = Path.cwd().resolve()
+    for d in (cwd, *cwd.parents):
+        if _is_kit(d):
+            return d
+    return near
+
+
 class Bundle:
     """Комплект: стоковый образ + ядро + профиль + каталоги модулей и тем."""
 
     def __init__(self, root=None):
         env = os.environ.get('ZEALMOD_BUNDLE')
-        self.root = Path(root or env or HERE.parents[1])     # ...\zeal
+        self.root = Path(root or env or _find_root()).resolve()
         self.dist = self.root / 'dist'
         self.fw = self.root / 'work'
 

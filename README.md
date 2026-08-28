@@ -31,7 +31,7 @@ native USB of its ESP32-C3, so the computer sees it on its own.
 ```sh
 git clone https://github.com/ARTEMIY-FCC/ZealMod zealmod
 cd zealmod
-python3 studio/zealmod.py studio
+./zealmod studio          # or: python3 studio/zealmod.py studio
 ```
 
 A window opens (a page in your browser; the program runs on your computer and
@@ -74,25 +74,18 @@ shows its size and adds it to the list.
 To write your own:
 
 ```sh
-python3 studio/zealmod.py new app mygame   # a C scaffold
-python3 studio/zealmod.py emu mygame       # run it on your computer
-
-cd mygame
-python3 ../studio/zealmod.py pack .        # build mygame.zm
-cd ..
+./zealmod new app mygame   # a C scaffold
+./zealmod emu mygame       # run it on your computer
+./zealmod pack mygame      # build mygame.zm
 ```
+
+Any path works, from anywhere: `./zealmod pack mygame` from the repo root and
+`../zealmod pack .` from inside `mygame/` do the same thing.
 
 That part does need a compiler (`riscv64-elf-gcc`) and SDL2 for the emulator —
 but only for the author. Whoever installs the program needs none of it: a `.zm`
 carries ready machine code, and Studio places it in the image and links it
 against the core itself.
-
-> **Note:** `pack` currently only builds correctly when run from *inside* the
-> module's own folder with `.` as the argument, as above. Calling it with a
-> path from elsewhere (e.g. `zealmod pack mygame` from the repo root) fails
-> with a compiler error like `mygame/src/main.c: No such file or directory` —
-> a known bug where the tool joins that path onto itself. `emu`, `check`, and
-> the rest of the commands don't have this problem and accept any path.
 
 More: [docs/module.md](docs/module.md) — how a program is built,
 [docs/api.md](docs/api.md) — the full API reference,
@@ -101,11 +94,17 @@ More: [docs/module.md](docs/module.md) — how a program is built,
 
 ## Command line
 
-Below, `zealmod` stands for however you invoke it — normally
-`python3 studio/zealmod.py`, since these tools aren't installed as a standalone
-command by default (`zealmod devices` on its own will just give you
-`command not found`). If you want the bare `zealmod` command to work, install
-it yourself, e.g. `pip install -e studio/`.
+Three ways to call the same program:
+
+* `./zealmod <command>` — the wrapper in the root of the repository
+  (`zealmod.cmd` on Windows). Nothing to install.
+* `python3 studio/zealmod.py <command>` — the same thing spelled out. Mind that
+  this path is relative to where you stand: from inside `mygame/` it is
+  `../studio/zealmod.py`.
+* `zealmod <command>` — a real command anywhere in the system, after
+  `pip install -e studio/`. It looks for the kit next to itself and then up
+  from the directory you are in, so it works from a subfolder too;
+  `--bundle /path/to/zealmod` points it at one by hand.
 
 ```
 zealmod devices          what is connected over USB
@@ -125,6 +124,8 @@ own language selector.
 ## What is in the repository
 
 ```
+zealmod      the command itself (`zealmod.cmd` on Windows) — a wrapper around
+             studio/zealmod.py
 work/        firmware: the ZealMod core and the sources of the built-in programs
 studio/      ZealMod Studio and zealmod — everything that touches the image
 modules/     the list of built-in programs (builtin.json)
@@ -136,22 +137,23 @@ docs/        how it is put together
 
 ## Troubleshooting
 
-* **`zsh: command not found: zealmod`** — see the note at the top of
-  [Command line](#command-line): call it as `python3 studio/zealmod.py ...`
-  unless you've installed the `zealmod` command yourself.
-* **`pack` fails with `.../src/main.c: No such file or directory`** — see the
-  note under [Your own programs and themes](#your-own-programs-and-themes):
-  `cd` into the module's folder and run `pack .` from there, rather than
-  pointing `pack` at the folder from somewhere else.
+* **`zsh: command not found: zealmod`** — from the repository, call it as
+  `./zealmod ...`; to get the bare `zealmod` command, `pip install -e studio/`.
 * **`python3 studio/zealmod.py ...` can't find the script itself** (`can't
   open file '.../studio/zealmod.py'`) — the path to `zealmod.py` is relative
   to your current directory, not to the repo. If you're inside a module
   folder like `mygame/`, that's `../studio/zealmod.py`, not `studio/zealmod.py`.
-* **`emu` says `the emulator needs the firmware sources (the work/ directory)`**
-  — this means `work/host/host_sdl.c` isn't where it should be relative to
-  `studio/zealmod.py`. It ships in the repo, so this usually means the clone
-  is incomplete (a partial download, a `git clone --depth`/sparse checkout, or
-  files removed by hand) — clone the repository fresh and try again.
+* **`studio` says the port is busy** — it now takes the next free one and
+  prints it, and if the window is already open on the same kit it just shows
+  that one. To find what holds the default port:
+  `lsof -nP -iTCP:8777 -sTCP:LISTEN` (then `kill <pid>`), or start elsewhere:
+  `./zealmod studio --port 8800`.
+* **`emu` says it needs the firmware sources** — it prints the directory it
+  looked in. `work/host/host_sdl.c` ships in the repo, so this usually means
+  the clone is incomplete (a partial download, a `git clone --depth`/sparse
+  checkout, or files removed by hand), or that you are running an installed
+  `zealmod` outside any checkout — point it at one with
+  `zealmod --bundle /path/to/zealmod emu`.
 
 ## Careful
 

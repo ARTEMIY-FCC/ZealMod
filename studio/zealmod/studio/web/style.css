@@ -71,18 +71,21 @@ main {
 .mod .warnrow { grid-column: 2 / -1; font-size: 11px; color: var(--bad); }
 .mod input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); }
 
-/* --- экран часов --- */
+/* --- экран таймера --- */
 .screen { position: relative; width: 240px; margin: 0 auto; }
-#preview {
-  width: 240px; height: 240px; border-radius: 50%; display: block;
+#preview {                              /* экран таймера квадратный, 240x240 */
+  width: 240px; height: 240px; border-radius: 6px; display: block;
   box-shadow: 0 0 0 10px #1c1f26, 0 0 0 12px #2b303b, 0 14px 40px #0008;
   background: #000;
 }
+/* корпус: четыре кнопки — две над экраном, две под ним */
 .bezel { position: absolute; inset: -22px -6px; pointer-events: none; }
-.bezel span { position: absolute; left: 50%; width: 78px; height: 9px; margin-left: -39px;
+.bezel span { position: absolute; width: 66px; height: 9px;
   background: #2b303b; border-radius: 4px; }
-.bezel span:first-child { top: 0; }
-.bezel span:last-child { bottom: 0; }
+.bezel span:nth-child(1) { top: 0; left: 28px; }
+.bezel span:nth-child(2) { top: 0; right: 28px; }
+.bezel span:nth-child(3) { bottom: 0; left: 28px; }
+.bezel span:nth-child(4) { bottom: 0; right: 28px; }
 .swatches { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
 .swatches i { width: 20px; height: 20px; border-radius: 6px; border: 1px solid #0006; }
 

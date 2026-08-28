@@ -1,0 +1,15 @@
+#!/bin/sh
+# ZealMod без установки:  ./zealmod studio
+# Можно положить ссылку на этот файл в PATH:  ln -s "$PWD/zealmod" /usr/local/bin/zealmod
+self=$0
+while [ -L "$self" ]; do                 # идём по симлинкам до самого файла
+    link=$(readlink "$self")
+    case $link in
+        /*) self=$link ;;
+        *)  self=$(dirname "$self")/$link ;;
+    esac
+done
+dir=$(cd "$(dirname "$self")" && pwd)
+py=python3
+command -v python3 >/dev/null 2>&1 || py=python
+exec "$py" "$dir/studio/zealmod.py" "$@"

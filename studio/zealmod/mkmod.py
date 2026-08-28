@@ -33,12 +33,14 @@ def _run(cmd, cwd=None):
 
 def compile_module(spec, fw_root: Path, out_dir: Path, includes=()):
     """Скомпилировать исходники модуля в один перемещаемый объектник."""
-    fw_root = Path(fw_root)
-    out_dir = Path(out_dir)
+    # только абсолютные пути: компилятор запускается из корня исходников, и
+    # относительный «мояигра/src/main.c» там приклеился бы сам к себе
+    fw_root = Path(fw_root).resolve()
+    out_dir = Path(out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     inc = ['-I' + str(fw_root / p) for p in ('src', 'build')]
     inc += ['-I' + str(fw_root / p) for p in spec.get('include', [])]
-    inc += ['-I' + str(p) for p in includes]
+    inc += ['-I' + str(Path(p).resolve()) for p in includes]
     objs = []
     for src in spec['sources']:
         s = fw_root / src
@@ -78,6 +80,7 @@ def cover_from_png(path, size=96):
 def build_module(spec, fw_root: Path, out_dir: Path, cover_dir: Path, work: Path,
                  includes=()):
     """Собрать и упаковать один модуль. Возвращает путь к .zm."""
+    fw_root = Path(fw_root).resolve()
     obj = compile_module(spec, fw_root, work, includes)
     cover = pal = png = b''
     cov = spec.get('cover')

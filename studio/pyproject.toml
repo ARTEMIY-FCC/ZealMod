@@ -5,3 +5,16 @@ description = "ZealMod: своя прошивка для таймера Zeal —
 requires-python = ">=3.9"
 license = { text = "MIT" }
 dependencies = ["esptool>=4.0", "pyserial>=3.5"]
+
+[project.scripts]
+zealmod = "zealmod.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["zealmod", "zealmod.studio"]
+
+[tool.setuptools.package-data]
+zealmod = ["profiles/*.json", "studio/web/*"]

@@ -110,7 +110,10 @@ def _specs(bundle, target):
 def emulate(bundle, target=None, extra=()):
     fw = bundle.fw
     if not (fw / 'host' / 'host_sdl.c').exists():
-        raise MkError('the emulator needs the firmware sources (the work/ directory)')
+        raise MkError(f'the emulator needs the firmware sources, and there are none '
+                      f'in {fw}\n'
+                      f'  run it from inside the ZealMod repository, or point it at '
+                      f'one: zealmod --bundle /path/to/zealmod emu')
     cflags, libs = _sdl_flags()
     build = fw / 'build' / 'emu'
     build.mkdir(parents=True, exist_ok=True)
