@@ -1,0 +1,209 @@
+{
+  "_": "Built-in ZealMod programs. Source paths are relative to the firmware root (work/).",
+  "modules": [
+    {
+      "id": "g2048",
+      "name": "2048",
+      "entry": "run_2048",
+      "cover": "g2048",
+      "exit_button": "up",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "Slide the tiles, add up the equal ones.",
+      "sources": [
+        "src/games/g2048.c"
+      ],
+      "name_ru": "2048",
+      "description_ru": "Сдвигайте плитки, складывайте одинаковые."
+    },
+    {
+      "id": "snake",
+      "name": "Snake",
+      "entry": "run_snake",
+      "cover": "snake",
+      "exit_button": "up",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "The classic snake: eat, grow, avoid yourself.",
+      "sources": [
+        "src/games/snake.c"
+      ],
+      "name_ru": "Змейка",
+      "description_ru": "Та самая змейка. Ест яблоки, растёт, врезается в себя."
+    },
+    {
+      "id": "tetris",
+      "name": "Tetris",
+      "entry": "run_tetris",
+      "cover": "tetris",
+      "exit_button": "up",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "Falling blocks, seven shapes, rotate and drop.",
+      "sources": [
+        "src/games/tetris.c"
+      ],
+      "name_ru": "Тетрис",
+      "description_ru": "Падающие фигуры, семь штук, поворот и ускорение."
+    },
+    {
+      "id": "pong",
+      "name": "Pong",
+      "entry": "run_pong",
+      "cover": "pong",
+      "exit_button": "left",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "Ping-pong against the computer or a friend.",
+      "sources": [
+        "src/games/pong.c"
+      ],
+      "name_ru": "Pong",
+      "description_ru": "Пинг-понг с ботом или вдвоём на одних часах."
+    },
+    {
+      "id": "maze",
+      "name": "Maze",
+      "entry": "run_maze",
+      "cover": "maze",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "Top-down maze: find the way out, go a level deeper.",
+      "sources": [
+        "src/games/maze.c",
+        "src/games/mazegen.c"
+      ],
+      "name_ru": "Лабиринт",
+      "description_ru": "Лабиринт сверху: выбраться и перейти на уровень выше."
+    },
+    {
+      "id": "maze3d",
+      "name": "Maze 3D",
+      "entry": "run_maze3d",
+      "cover": "maze3d",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "The same maze in first person — a raycaster.",
+      "sources": [
+        "src/games/maze3d.c",
+        "src/games/mazegen.c"
+      ],
+      "name_ru": "Лабиринт 3D",
+      "description_ru": "Тот же лабиринт, но от первого лица — рейкастер."
+    },
+    {
+      "id": "gravity",
+      "name": "Gravity",
+      "entry": "run_gravity",
+      "cover": "gravity",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "game",
+      "description": "Bike over the hills: Verlet physics, two linked points.",
+      "sources": [
+        "src/games/gravity.c"
+      ],
+      "name_ru": "Gravity",
+      "description_ru": "Мотоцикл на холмах: физика Верле, две точки на связи."
+    },
+    {
+      "id": "mine",
+      "name": "Mine",
+      "entry": "run_mine",
+      "cover": "mine",
+      "exit_button": "down",
+      "exit_hold": 2.5,
+      "kind": "game",
+      "description": "A blocky world: walk around, break and place blocks.",
+      "sources": [
+        "src/games/mine.c"
+      ],
+      "name_ru": "Майнкрафт",
+      "description_ru": "Кубический мир: ходить, ломать и ставить блоки."
+    },
+    {
+      "id": "doom",
+      "name": "DOOM",
+      "entry": "run_doom",
+      "cover": "doom",
+      "exit_button": "down",
+      "exit_hold": 2.5,
+      "kind": "game",
+      "description": "The real E1M1 from Freedoom: BSP, textures, monsters.",
+      "sources": [
+        "src/games/doom/doom.c",
+        "src/games/doom/dm_render.c",
+        "src/games/doom/dm_data.c",
+        "build/doom_music.c",
+        "build/doom_data.S"
+      ],
+      "include": [
+        "src/games/doom"
+      ],
+      "name_ru": "DOOM",
+      "description_ru": "Настоящая E1M1 из Freedoom: BSP, текстуры, монстры."
+    },
+    {
+      "id": "clock",
+      "name": "Clock",
+      "entry": "run_clock",
+      "cover": "clock",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "app",
+      "description": "An analog clock on top of the timer.",
+      "sources": [
+        "src/apps/clock.c"
+      ],
+      "name_ru": "Часы",
+      "description_ru": "Стрелочные часы поверх таймера."
+    },
+    {
+      "id": "calendar",
+      "name": "Calendar",
+      "entry": "run_calendar",
+      "cover": "calendar",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "app",
+      "description": "A month on the screen, paged with the buttons.",
+      "sources": [
+        "src/apps/calendar.c"
+      ],
+      "name_ru": "Календарь",
+      "description_ru": "Месяц на экране, листается кнопками."
+    },
+    {
+      "id": "diag",
+      "name": "Diagnostics",
+      "entry": "run_diag",
+      "cover": "diag",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "app",
+      "description": "Buttons, screen, frame rate — what works and how.",
+      "sources": [
+        "src/apps/diag.c"
+      ],
+      "name_ru": "Настройка",
+      "description_ru": "Кнопки, экран, кадры в секунду — что и как работает."
+    },
+    {
+      "id": "sound",
+      "name": "Sound",
+      "entry": "run_sound",
+      "cover": "sound",
+      "exit_button": "down",
+      "exit_hold": 1.4,
+      "kind": "app",
+      "description": "Test the sound, turn it off, mute the stock buzz.",
+      "sources": [
+        "src/apps/sound.c"
+      ],
+      "name_ru": "Звук",
+      "description_ru": "Проверить звук, выключить его или треск прошивки."
+    }
+  ]
+}

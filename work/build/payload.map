@@ -1,0 +1,254 @@
+
+Merging object attributes
+
+
+Discarded input sections
+
+ .comment       0x00000000       0x13 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+ .riscv.attributes
+                0x00000000       0x43 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+ .comment       0x00000000       0x13 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+ .riscv.attributes
+                0x00000000       0x43 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+ .riscv.attributes
+                0x00000000       0x3d /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccatlqTe.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+irom             0x420647d0         0x0000b830         xr
+irom2            0x42280000         0x00010000         xr
+drom             0x3c120000         0x000c0000         r
+rtc              0x50000140         0x00001dc0         rw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccVLW9f9.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cc7i5jEw.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cc0NQ9LX.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cc5nXRU6.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccKP1RTj.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccCbt5qX.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cc6JtNLV.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cca0Gww4.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccBzabXY.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccyIeots.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccXr9wqH.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccLEHMur.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccOfIlhC.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccZLQixq.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccrxfZrt.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccr5zYV8.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccFhlZUu.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccBcMlqM.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cco9B7qm.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cchutRwk.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccZCI8Rx.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccysuCsu.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccMVo7ET.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccEWmjUC.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccnKpRjx.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cc8zO4V1.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//cckZHQsB.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccDOHl3H.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccHfGjKk.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccj9kwKK.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccSQcD2h.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccatlqTe.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccdEv73l.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccPkq8vo.o
+LOAD /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccD7ctHF.o
+
+.ptext          0x420647d0       0xcc
+ *(.text.hooks)
+ .text.hooks    0x420647d0       0xca /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+                0x420647d0                zg_hook_boot
+                0x4206481c                zg_hook_keys
+                0x42064840                zg_hook_flush
+                0x4206489c                        . = ALIGN (0x4)
+ *fill*         0x4206489a        0x2 
+
+.ptext2         0x42280000     0xda78
+ *(.text .text.*)
+ .text          0x42280000     0xab12 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+                0x42283132                gfx_clear
+                0x42283152                gfx_fill
+                0x42283298                gfx_frame
+                0x42283326                gfx_line
+                0x422834d4                gfx_disc
+                0x42283568                gfx_ring
+                0x4228364c                gfx_round
+                0x42283710                gfx_vgrad
+                0x42283888                gfx_vgrad.constprop.0
+                0x4228390a                gfx_text.isra.0
+                0x42283b48                gfx_text_c.isra.0
+                0x42283b8c                gfx_text_c.constprop.1.isra.0
+                0x42283d1a                gfx_text_c.constprop.0.isra.0
+                0x42283e1a                mem_add
+                0x42283e52                mem_reset
+                0x42283ef2                mem_left
+                0x42283f1a                mem_alloc
+                0x422846c6                fx_sin
+                0x42284716                memset
+                0x422847d6                memcpy
+                0x422847f2                memmove
+                0x42284834                strlen
+                0x42284846                strcmp
+                0x42284860                strcpy
+                0x42284872                fx_vfmt
+                0x42284adc                fx_fmt
+                0x42284bc4                fx_fmt.constprop.0
+                0x42284be8                game_quit
+                0x42284c20                game_frame_wait
+                0x42284cea                zm_cfg
+                0x42284cf4                zm_lang
+                0x42284d10                menu_run
+ .text          0x4228ab12     0x2f64 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+                0x4228b1f0                now_ms
+                0x4228b200                wc_tick
+                0x4228b764                plat_sleep_ms
+                0x4228b79e                fb_begin
+                0x4228b8b4                in_poll
+                0x4228b9a2                in_held_ms
+                0x4228b9e2                plat_exit_to_stock
+                0x4228ba1c                zg_lv_note
+                0x4228baae                zg_flush_swallow
+                0x4228bad8                ledc_off.lto_priv.0
+                0x4228bbe0                zg_boot
+                0x4228c0b8                note_start.lto_priv.0
+                0x4228c18c                snd_play
+                0x4228c1a0                snd_play.constprop.1
+                0x4228c1b6                snd_play.constprop.0
+                0x4228c1cc                fb_next
+                0x4228c3b0                run_calendar
+                0x4228c6ca                run_clock
+                0x4228ce2c                run_diag
+                0x4228d61c                run_sound
+ .text          0x4228da76        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccatlqTe.o
+                0x4228da78                        . = ALIGN (0x4)
+ *fill*         0x4228da76        0x2 
+
+.prodata        0x3c120000    0x8ef44
+ *(.zmtab)
+ .zmtab         0x3c120000      0x3d0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+                0x3c120000                zm_tab
+ *(.rodata .rodata.* .srodata .srodata.*)
+ .rodata.str1.4
+                0x3c1203d0     0x15e1 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+                                0x869 (size before relaxing)
+ *fill*         0x3c1219b1        0x3 
+ .rodata        0x3c1219b4    0x28868 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+                0x3c121e88                font_m
+                0x3c121eb4                font_s
+                0x3c121ee0                font_l
+                0x3c121f0c                snd_pick
+                0x3c121fa8                snd_click
+                0x3c142644                font_l_cp.lto_priv.0
+                0x3c142794                font_l_off.lto_priv.0
+                0x3c142a30                font_l_adv.lto_priv.0
+                0x3c142ad8                font_l_oy.lto_priv.0
+                0x3c142b80                font_l_ox.lto_priv.0
+                0x3c142c28                font_l_h.lto_priv.0
+                0x3c142cd0                font_l_w.lto_priv.0
+                0x3c142d78                font_l_bm.lto_priv.0
+                0x3c146548                font_s_cp.lto_priv.0
+                0x3c146698                font_s_off.lto_priv.0
+                0x3c146934                font_s_adv.lto_priv.0
+                0x3c1469dc                font_s_oy.lto_priv.0
+                0x3c146a84                font_s_ox.lto_priv.0
+                0x3c146b2c                font_s_h.lto_priv.0
+                0x3c146bd4                font_s_w.lto_priv.0
+                0x3c146c7c                font_s_bm.lto_priv.0
+                0x3c147ce0                font_m_cp.lto_priv.0
+                0x3c147e30                font_m_off.lto_priv.0
+                0x3c1480cc                font_m_adv.lto_priv.0
+                0x3c148174                font_m_oy.lto_priv.0
+                0x3c14821c                font_m_ox.lto_priv.0
+                0x3c1482c4                font_m_h.lto_priv.0
+                0x3c14836c                font_m_w.lto_priv.0
+                0x3c148414                font_m_bm.lto_priv.0
+ .rodata.str1.4
+                0x3c14a21c        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+                                0xe11 (size before relaxing)
+ .rodata        0x3c14a21c      0x24a /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+ *fill*         0x3c14a466        0x2 
+ .rodata.doom   0x3c14a468    0x64adc /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccatlqTe.o
+                0x3c14a468                doom_gfx
+                0x3c14a468                _doom_gfx
+                0x3c197b60                _doom_maps
+                0x3c197b60                doom_maps
+                0x3c1aef44                        . = ALIGN (0x4)
+
+.rela.dyn       0x3c1aef44        0x0
+ .rela.text     0x3c1aef44        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+
+.data           0x3c1aef44        0x0
+ .data          0x3c1aef44        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+ .data          0x3c1aef44        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+ .data          0x3c1aef44        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccatlqTe.o
+
+.pbss           0x50000140      0xb18
+                0x50000140                        __bss_start__ = .
+ *(.bss .bss.* .sbss .sbss.* COMMON)
+ .bss           0x50000140      0x808 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+                0x50000140                rng_s.lto_priv.0
+                0x500004d0                dm_c_plane
+                0x50000504                dm_c_wall
+                0x5000050c                dm_n_seg
+                0x50000524                dm_c_seg
+                0x5000052c                dm_c_box
+                0x500006d4                npool.lto_priv.0
+                0x500006d8                pool.lto_priv.0
+                0x50000718                zg_cmd_back
+                0x5000071c                exit_btn.lto_priv.0
+                0x50000720                exit_hold.lto_priv.0
+                0x500007a4                sound_on.lto_priv.0
+                0x500007a8                note_until.lto_priv.0
+                0x500007ac                qhead.lto_priv.0
+                0x500007b0                qtail.lto_priv.0
+                0x500007b4                queue.lto_priv.0
+                0x500007f4                hit.lto_priv.0
+                0x500007f8                zg_cmd_app
+                0x500007fc                zg_cmd_exit
+                0x50000800                rep_mask.lto_priv.0
+                0x50000810                held.lto_priv.1
+                0x50000934                push_y0.lto_priv.0
+                0x50000938                push_y1.lto_priv.0
+                0x5000093c                dm_c_all
+                0x50000944                dirty.lto_priv.0
+ .bss           0x50000948      0x1f0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+                0x50000b0c                zg_active
+                0x50000b10                zg_mute_keys
+                0x50000b14                zg_lv_seen
+                0x50000b18                zg_lv_frozen
+ .bss           0x50000b38        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccatlqTe.o
+                0x50000b38                        . = ALIGN (0x8)
+                0x50000b38                        __bss_end__ = .
+                0x50000b38                        __persist_magic = .
+                0x50000b3c                        . = (. + 0x4)
+ *fill*         0x50000b38        0x4 
+                0x50000b3c                        __persist_start__ = .
+ *(.persist .persist.*)
+ .persist       0x50000b3c      0x100 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+                0x50000b3c                hiscore.lto_priv.0
+ .persist       0x50000c3c       0x18 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
+                0x50000c58                        . = ALIGN (0x8)
+ *fill*         0x50000c54        0x4 
+                0x50000c58                        __persist_end__ = .
+
+/DISCARD/
+ *(.comment)
+ *(.eh_frame*)
+ *(.riscv.attributes)
+                0x00000001                        ASSERT ((SIZEOF (.pbss) < 0x1dc0), RTC-память кончилась)
+OUTPUT(build/payload.elf elf32-littleriscv)
+
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans0.ltrans.o
+ .note.GNU-stack
+                0x00000000        0x0 /var/folders/r_/rw_fltrd73v8dtj5bd_fkhtw0000gn/T//ccQsNsNH.ltrans1.ltrans.o
