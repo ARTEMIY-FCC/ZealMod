@@ -22,7 +22,7 @@ CORE = ['src/gfx.c', 'src/text.c', 'src/util.c', 'src/menu.c', 'src/gameutil.c',
         'host/host_sdl.c', 'host/snd_host.c', 'host/nvram_host.c']
 
 KEYS = """\
-управление: стрелки — кнопки таймера, Enter — «вверх», Esc — выход
+controls: arrow keys are the timer buttons, Enter is ▲, Esc quits
 """
 
 
@@ -34,8 +34,7 @@ def _sdl_flags():
             raise FileNotFoundError
         return cf.stdout.split(), lf.stdout.split()
     except FileNotFoundError:
-        raise MkError('нет SDL2: поставьте её (macOS: brew install sdl2, '
-                      'Debian/Ubuntu: apt install libsdl2-dev)') from None
+        raise MkError('SDL2 is missing (macOS: brew install sdl2, Debian/Ubuntu: apt install libsdl2-dev)') from None
 
 
 def _covers_c(specs, cover_dir, out: Path):
@@ -92,7 +91,7 @@ def _specs(bundle, target):
         d = Path(target)
         manf = d / 'module.json'
         if not manf.exists():
-            raise MkError(f'нет {manf} — эмулятору нужны исходники, а не .zm')
+            raise MkError(f'{manf} not found — the emulator needs sources, not a .zm')
         sp = json.loads(manf.read_text('utf-8'))
         sp['_dir'] = d
         out.append(sp)
@@ -111,7 +110,7 @@ def _specs(bundle, target):
 def emulate(bundle, target=None, extra=()):
     fw = bundle.fw
     if not (fw / 'host' / 'host_sdl.c').exists():
-        raise MkError('эмулятору нужны исходники прошивки (каталог work/)')
+        raise MkError('the emulator needs the firmware sources (the work/ directory)')
     cflags, libs = _sdl_flags()
     build = fw / 'build' / 'emu'
     build.mkdir(parents=True, exist_ok=True)
@@ -125,7 +124,7 @@ def emulate(bundle, target=None, extra=()):
         for s in sp['sources']:
             p = Path(sp['_dir']) / s
             if not p.exists():
-                raise MkError(f'нет исходника {p}')
+                raise MkError(f'missing source {p}')
             if p.suffix == '.S':
                 continue                 # ассемблер под RISC-V на компьютере не нужен
             srcs.append(str(p))
@@ -138,7 +137,7 @@ def emulate(bundle, target=None, extra=()):
            '-o', str(out), *srcs, *libs]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode:
-        raise MkError('не собралось:\n' + (r.stderr or r.stdout)[-2500:])
-    print(f'эмулятор: {out}')
+        raise MkError('build failed:\n' + (r.stderr or r.stdout)[-2500:])
+    print(f'emulator: {out}')
     print(KEYS, end='')
     return subprocess.call([str(out), *extra])

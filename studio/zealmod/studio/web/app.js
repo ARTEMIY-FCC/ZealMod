@@ -13,27 +13,25 @@ const api = async (path, opts) => {
 
 const S = {
   mods: [], themes: [], order: [], on: new Set(), covers: {},
-  theme: '__default__', layout: 0, part: 2 * 1024 * 1024, report: null,
+  theme: '__default__', layout: 0, part: 2 * 1024 * 1024, report: null, sel: 0,
   cfg: { btn_map: [0, 1, 2, 3], menu_btn: 0, menu_hold_ms: 1500, exit_hold_ms: 1400,
-         splash: 1, snd_on: 1, mute_stock: 1 },
+         splash: 1, snd_on: 1, mute_stock: 1, lang: 'en' },
 };
-const BTN = ['▲ вверх', '▼ вниз', '◀ влево', '▶ вправо'];
-const kb = (n) => n >= 1048576 ? (n / 1048576).toFixed(2) + ' МБ'
-  : n >= 1024 ? (n / 1024).toFixed(1) + ' КБ' : n + ' Б';
+const kb = (n) => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB'
+  : n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
+const btnNames = () => [t('btn_up'), t('btn_down'), t('btn_left'), t('btn_right')];
 
 /* ---------- загрузка состояния ---------- */
 async function load() {
-  const st = await api('/api/state');
+  const st = await api('/api/state?lang=' + UILANG);
   S.mods = st.modules;
   S.themes = st.themes;
   S.part = st.part;
   S.order = st.modules.map((m) => m.id);
   if (!S.on.size) st.modules.forEach((m) => { if (m.ok !== false) S.on.add(m.id); });
-  $('#sub').textContent = `${st.profile.name} · комплект ${st.bundle}`;
-  if (!st.base.ok) toast('Стоковая прошивка не та, под которую собран мод — соберётся, ' +
-                         'но проверьте часы', 'bad', 9000);
-  if (!st.modules.length) toast('В комплекте нет программ. Соберите их: ' +
-                                'cd work && make core, затем zealmod mods', 'bad', 15000);
+  $('#sub').textContent = `${st.profile.name} · ${st.bundle}`;
+  if (!st.base.ok) toast(t('wrong_base'), 'bad', 9000);
+  if (!st.modules.length) toast(t('no_modules'), 'bad', 15000);
   fillThemes();
   fillButtons();
   renderList();
@@ -49,20 +47,19 @@ function devices(d) {
   (d.ports || []).forEach((p) => {
     const o = document.createElement('option');
     o.value = p.port;
-    o.textContent = p.score ? `${p.port} — таймер` : p.port;
+    o.textContent = p.score ? `${p.port} — ${t('is_timer')}` : p.port;
     sel.appendChild(o);
   });
   if (!d.ports || !d.ports.length) {
     const o = document.createElement('option');
-    o.textContent = 'часов не видно';
+    o.textContent = t('no_device');
     o.value = '';
     sel.appendChild(o);
   }
   if (cur) sel.value = cur;
   const found = (d.ports || []).some((p) => p.score);
   $('#devdot').classList.toggle('on', found);
-  $('#flash').disabled = !found && !(d.ports || []).length;
-  if (!d.esptool) toast('Для заливки нужен esptool: pip install esptool', 'bad', 8000);
+  if (!d.esptool && !S.warnedTool) { S.warnedTool = 1; toast(t('need_esptool'), 'bad', 8000); }
 }
 
 /* ---------- список программ ---------- */
@@ -81,8 +78,8 @@ function renderList() {
       <img src="/api/cover/${id}.png" alt="" onerror="this.style.visibility='hidden'">
       <div>
         <div class="nm">${esc(m.name)}</div>
-        <div class="meta">${esc(m.kind === 'game' ? 'игра' : 'приложение')} ·
-          выход ${esc(btnName(m.exit_button))} ${(m.exit_hold || 1.4).toFixed(1)} с</div>
+        <div class="meta">${t(m.kind === 'game' ? 'game' : 'app')} ·
+          ${t('exit_hint')} ${esc(btnArrow(m.exit_button))} ${(m.exit_hold || 1.4).toFixed(1)} s</div>
       </div>
       <div class="sz">${kb((m.code || 0) + (m.data || 0))}</div>
       ${m.ok === false ? `<div class="warnrow">${esc((m.problems || []).join('; '))}</div>` : ''}`;
@@ -97,9 +94,8 @@ function renderList() {
   count();
 }
 
-function btnName(v) {
-  const map = { up: '▲', down: '▼', left: '◀', right: '▶' };
-  return map[v] || v || '▲';
+function btnArrow(v) {
+  return ({ up: '▲', down: '▼', left: '◀', right: '▶' })[v] || v || '▲';
 }
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
@@ -127,17 +123,17 @@ function dnd(el) {
 function fillThemes() {
   const sel = $('#theme');
   sel.innerHTML = '';
-  S.themes.forEach((t) => {
+  S.themes.forEach((th) => {
     const o = document.createElement('option');
-    o.value = t.id;
-    o.textContent = t.name + (t.builtin ? '' : ' · своя');
+    o.value = th.id;
+    o.textContent = th.name;
     sel.appendChild(o);
   });
   sel.value = S.theme;
   swatches();
 }
 function curTheme() {
-  return S.themes.find((t) => t.id === S.theme) || S.themes[0] || { colors: {} };
+  return S.themes.find((x) => x.id === S.theme) || S.themes[0] || { colors: {} };
 }
 function swatches() {
   const c = curTheme().colors || {};
@@ -148,13 +144,13 @@ function swatches() {
 function fillButtons() {
   const box = $('#btnmap');
   box.innerHTML = '';
-  BTN.forEach((name, i) => {
+  btnNames().forEach((name, i) => {
     const d = document.createElement('div');
     d.innerHTML = `<span>${name.split(' ')[0]}</span>`;
     const s = document.createElement('select');
     [0, 1, 2, 3].forEach((raw) => {
       const o = document.createElement('option');
-      o.value = raw; o.textContent = 'кнопка ' + (raw + 1);
+      o.value = raw; o.textContent = t('button_n', { n: raw + 1 });
       s.appendChild(o);
     });
     s.value = S.cfg.btn_map[i];
@@ -164,12 +160,14 @@ function fillButtons() {
   });
   const mb = $('#menubtn');
   mb.innerHTML = '';
-  BTN.forEach((name, i) => {
+  btnNames().forEach((name, i) => {
     const o = document.createElement('option');
     o.value = i; o.textContent = name;
     mb.appendChild(o);
   });
   mb.value = S.cfg.menu_btn;
+  $('#menuholdv').textContent = t('seconds', { v: (S.cfg.menu_hold_ms / 1000).toFixed(1) });
+  $('#exitholdv').textContent = t('seconds', { v: (S.cfg.exit_hold_ms / 1000).toFixed(1) });
 }
 
 /* ---------- предпросмотр ---------- */
@@ -202,7 +200,7 @@ function draw() {
   if (!chosen.length) {
     g.fillStyle = c.text || '#fff';
     g.font = '600 15px system-ui'; g.textAlign = 'center';
-    g.fillText('Модулей нет', 120, 118);
+    g.fillText(t('no_programs'), 120, 118);
     return;
   }
   if (S.layout === 1) return drawGrid(g, c, chosen);
@@ -279,15 +277,17 @@ function hexa(hex, a) {                                  /* #rrggbb -> rgba() */
 }
 
 function drawGrid(g, c, ids) {
-  ids.slice(0, 9).forEach((id, i) => {
+  const sel = (S.sel | 0) % Math.max(ids.length, 1);
+  const first = Math.max(0, Math.floor(sel / 3) - 1) * 3;      /* видимое окно */
+  ids.slice(first, first + 9).forEach((id, i) => {
     const x = 12 + (i % 3) * 74, y = 14 + ((i / 3) | 0) * 74;
-    if (i === (S.sel | 0) % 9) {
+    if (first + i === sel) {
       g.fillStyle = c.accent || '#6ea8ff';
       g.fillRect(x - 3, y - 3, 72, 72);
     }
-    cover(g, id, x, y, 66, 66, i === (S.sel | 0) % 9 ? 1 : 0.8);
+    cover(g, id, x, y, 66, 66, first + i === sel ? 1 : 0.8);
   });
-  const m = S.mods.find((x) => x.id === ids[(S.sel | 0) % Math.max(ids.length, 1)]);
+  const m = S.mods.find((x) => x.id === ids[sel]);
   g.fillStyle = '#000a'; g.fillRect(0, 214, 240, 26);
   g.fillStyle = c.text || '#fff';
   g.font = '600 15px system-ui'; g.textAlign = 'center';
@@ -295,9 +295,11 @@ function drawGrid(g, c, ids) {
 }
 
 function drawList(g, c, ids) {
-  ids.slice(0, 6).forEach((id, i) => {
+  const sel = (S.sel | 0) % Math.max(ids.length, 1);
+  const first = Math.max(0, sel - 2);
+  ids.slice(first, first + 6).forEach((id, i) => {
     const y = 8 + i * 46;
-    const on = i === (S.sel | 0) % 6;
+    const on = first + i === sel;
     if (on) { g.fillStyle = c.accent || '#6ea8ff'; g.fillRect(6, y, 228, 40); }
     cover(g, id, 12, y + 4, 32, 32, 1);
     const m = S.mods.find((x) => x.id === id);
@@ -320,21 +322,21 @@ async function doBuild() {
     modules: S.order.filter((id) => S.on.has(id)),
     theme: S.theme, layout: S.layout, cfg: S.cfg,
   };
-  $('#usage').textContent = 'считаю…';
+  $('#usage').textContent = t('building');
   try {
     const r = await api('/api/build', { method: 'POST', body: JSON.stringify(body) });
     S.report = r;
     const used = r.size / S.part;
     $('#barfill').style.width = (used * 100).toFixed(1) + '%';
     $('#barfree').style.width = (100 - used * 100).toFixed(1) + '%';
-    $('#usage').textContent =
-      `${kb(r.size)} из ${kb(S.part)} · свободно ${kb(r.free)} · программ ${r.modules.length}` +
-      ` · страниц кода ${r.pages}`;
+    $('#usage').textContent = t('usage', {
+      size: kb(r.size), part: kb(S.part), free: kb(r.free),
+      n: r.modules.length, pages: r.pages });
     $('#flash').disabled = false;
     $('#export').disabled = false;
   } catch (e) {
     S.report = null;
-    $('#usage').textContent = 'не собирается: ' + e.message;
+    $('#usage').textContent = t('cant_build', { err: e.message });
     $('#barfill').style.width = '100%';
     $('#flash').disabled = true;
     $('#export').disabled = true;
@@ -355,7 +357,7 @@ function watch(title) {
     $('#logtext').scrollTop = 1e9;
     if (p.done) {
       clearInterval(poll);
-      toast(p.ok ? title + ': готово' : title + ': не получилось', p.ok ? 'good' : 'bad', 6000);
+      toast(t(p.ok ? 'done' : 'failed', { job: title }), p.ok ? 'good' : 'bad', 6000);
     }
   }, 400);
 }
@@ -377,11 +379,11 @@ async function upload(file) {
                         { method: 'POST', body: buf });
     if (r.kind === 'module') {
       S.on.add(r.id);
-      toast(r.ok ? `«${r.name}» поставлена` : `«${r.name}»: ${r.problems.join('; ')}`,
+      toast(r.ok ? t('installed', { name: r.name }) : `${r.name}: ${r.problems.join('; ')}`,
             r.ok ? 'good' : 'bad', 7000);
     } else {
       S.theme = r.id;
-      toast('тема добавлена', 'good');
+      toast(t('theme_added'), 'good');
     }
     await load();
   } catch (e) {
@@ -396,34 +398,42 @@ function pick(accept, cb) {
   i.click();
 }
 
-/* ---------- события ---------- */
-$('#theme').onchange = (e) => {
-  S.theme = e.target.value;
-  const t = curTheme();                       /* у темы свой вид меню */
-  if (t && t.layout != null) setLayout(t.layout);
-  swatches();
-  build();
-};
 function setLayout(v) {
   S.layout = +v;
   [...$('#layout').children].forEach((b) => b.classList.toggle('on', +b.dataset.v === S.layout));
 }
+
+/* ---------- события ---------- */
+$('#uilang').onchange = async (e) => {          /* язык окна */
+  applyLang(e.target.value);
+  fillButtons();
+  renderList();
+  await load();
+};
+$('#modlang').onchange = (e) => { S.cfg.lang = e.target.value; build(); };
+$('#theme').onchange = (e) => {
+  S.theme = e.target.value;
+  const th = curTheme();                       /* у темы свой вид меню */
+  if (th && th.layout != null) setLayout(th.layout);
+  swatches();
+  build();
+};
+
 $('#layout').onclick = (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
-  S.layout = +b.dataset.v;
+  setLayout(b.dataset.v);
   build();
 };
 $('#menubtn').onchange = (e) => { S.cfg.menu_btn = +e.target.value; build(); };
 $('#menuhold').oninput = (e) => {
   S.cfg.menu_hold_ms = +e.target.value;
-  $('#menuholdv').textContent = (S.cfg.menu_hold_ms / 1000).toFixed(1).replace('.', ',') + ' с';
+  $('#menuholdv').textContent = t('seconds', { v: (S.cfg.menu_hold_ms / 1000).toFixed(1) });
   build();
 };
 $('#exithold').oninput = (e) => {
   S.cfg.exit_hold_ms = +e.target.value;
-  $('#exitholdv').textContent = (S.cfg.exit_hold_ms / 1000).toFixed(1).replace('.', ',') + ' с';
+  $('#exitholdv').textContent = t('seconds', { v: (S.cfg.exit_hold_ms / 1000).toFixed(1) });
   build();
 };
 ['splash', 'snd', 'mute'].forEach((k) => {
@@ -440,20 +450,24 @@ $('#addtheme').onclick = () => pick('.zt', upload);
 $('#rescan').onclick = async () => devices(await api('/api/devices'));
 $('#export').onclick = () => { location.href = '/api/image?name=zealmod.gbl'; };
 $('#flash').onclick = async () => {
-  if (!S.report) return toast('образ ещё не собран', 'bad');
+  if (!S.report) return toast(t('not_built'), 'bad');
   try {
     await api('/api/flash', { method: 'POST', body: JSON.stringify({ port: $('#port').value }) });
-    watch('Заливка');
+    watch(t('flashing'));
   } catch (e) { toast(e.message, 'bad', 6000); }
 };
 $('#backup').onclick = async () => {
-  await api('/api/backup', { method: 'POST', body: JSON.stringify({ port: $('#port').value }) });
-  watch('Копия флеша');
+  try {
+    await api('/api/backup', { method: 'POST', body: JSON.stringify({ port: $('#port').value }) });
+    watch(t('backup_job'));
+  } catch (e) { toast(e.message, 'bad', 6000); }
 };
 $('#stock').onclick = async () => {
-  if (!confirm('Вернуть заводскую прошивку? ZealMod с часов пропадёт.')) return;
-  await api('/api/stock', { method: 'POST', body: JSON.stringify({ port: $('#port').value }) });
-  watch('Заводская прошивка');
+  if (!confirm(t('confirm_stock'))) return;
+  try {
+    await api('/api/stock', { method: 'POST', body: JSON.stringify({ port: $('#port').value }) });
+    watch(t('stock_job'));
+  } catch (e) { toast(e.message, 'bad', 6000); }
 };
 $('#logclose').onclick = () => $('#log').classList.add('hidden');
 $('#preview').onclick = (e) => {
@@ -475,4 +489,7 @@ setInterval(async () => {
   try { devices(await api('/api/devices')); } catch (e) { /* окно ещё живо */ }
 }, 4000);
 
-load().catch((e) => toast('не завёлся: ' + e.message, 'bad', 12000));
+applyLang(UILANG);
+$('#uilang').value = UILANG;
+$('#modlang').value = S.cfg.lang;
+load().catch((e) => toast(t('startup_failed', { err: e.message }), 'bad', 12000));

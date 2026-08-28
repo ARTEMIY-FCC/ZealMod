@@ -1,0 +1,20 @@
+{
+  "name": "Sunset",
+  "author": "ZealMod",
+  "layout": "coverflow",
+  "reflection": 48,
+  "spacing": 96,
+  "colors": {
+    "bg_top": "#3b1d4e",
+    "bg_bot": "#ff9563",
+    "fl_top": "#2a1030",
+    "fl_bot": "#120616",
+    "line": "#ff9563",
+    "accent": "#ffd28a",
+    "text": "#fff3e6",
+    "text_dim": "#7a5a68",
+    "shadow": "#1a0a12"
+  },
+  "format": "zealmod-theme/1",
+  "name_ru": "Закат"
+}

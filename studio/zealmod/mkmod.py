@@ -24,8 +24,8 @@ class MkError(Exception):
     pass
 
 
-def _run(cmd):
-    r = subprocess.run(cmd, capture_output=True)
+def _run(cmd, cwd=None):
+    r = subprocess.run(cmd, capture_output=True, cwd=cwd)
     if r.returncode:
         raise MkError(f'{cmd[0]}:\n' + r.stderr.decode('utf-8', 'replace').strip())
     return r.stdout
@@ -43,9 +43,11 @@ def compile_module(spec, fw_root: Path, out_dir: Path, includes=()):
     for src in spec['sources']:
         s = fw_root / src
         if not s.exists():
-            raise MkError(f'нет исходника {s}')
+            raise MkError(f'missing source {s}')
         o = out_dir / (spec['id'] + '_' + Path(src).name.replace('.', '_') + '.o')
-        _run([CC, *CFLAGS, *inc, '-c', str(s), '-o', str(o)])
+        # собираем из корня прошивки: ассемблерные .incbin в исходниках
+        # написаны относительно него (build/doom_gfx.bin и подобное)
+        _run([CC, *CFLAGS, *inc, '-c', str(s), '-o', str(o)], cwd=fw_root)
         objs.append(str(o))
     code = out_dir / (spec['id'] + '.o')
     # ld -r склеивает объекты, оставляя файл перемещаемым
@@ -58,7 +60,7 @@ def cover_from_png(path, size=96):
     try:
         from PIL import Image
     except ImportError:
-        raise MkError('для обложек нужен Pillow: pip install pillow') from None
+        raise MkError('covers need Pillow: pip install pillow') from None
     import io
     im = Image.open(path).convert('RGB')
     if im.size != (size, size):
@@ -86,10 +88,11 @@ def build_module(spec, fw_root: Path, out_dir: Path, cover_dir: Path, work: Path
         if p:
             cover, pal, png = cover_from_png(p)
         else:
-            print(f'  ! обложки {cov} нет — модуль будет без картинки')
+            print(f'  ! cover {cov} not found — the module will have no picture')
     man = {k: v for k, v in spec.items()
-           if k in ('id', 'name', 'version', 'author', 'entry', 'exit_button',
-                    'exit_hold', 'description', 'kind', 'abi')}
+           if k in ('id', 'name', 'name_ru', 'version', 'author', 'entry',
+                    'exit_button', 'exit_hold', 'description', 'description_ru',
+                    'kind', 'abi')}
     man.setdefault('version', '1.0')
     man.setdefault('author', 'ZealMod')
     man.setdefault('abi', tab.ABI)
@@ -105,7 +108,7 @@ def _blobs(spec, fw_root):
     for name, path in (spec.get('blobs') or {}).items():
         p = fw_root / path
         if not p.exists():
-            raise MkError(f'нет данных {p}')
+            raise MkError(f'missing data file {p}')
         out[name] = p.read_bytes()
     return out
 

@@ -1,0 +1,20 @@
+{
+  "name": "Mint",
+  "author": "ZealMod",
+  "layout": "coverflow",
+  "reflection": 36,
+  "spacing": 92,
+  "colors": {
+    "bg_top": "#eef7f3",
+    "bg_bot": "#cfe6dd",
+    "fl_top": "#cfe6dd",
+    "fl_bot": "#a9d0c4",
+    "line": "#8fbdb0",
+    "accent": "#17604c",
+    "text": "#0f2f27",
+    "text_dim": "#8bb3a7",
+    "shadow": "#ffffff"
+  },
+  "format": "zealmod-theme/1",
+  "name_ru": "Мята"
+}

@@ -37,7 +37,7 @@ class AppImage:
     def __init__(self, data: bytes):
         d = bytes(data)
         if not d or d[0] != 0xE9:
-            raise ImageError('не образ приложения ESP32 (нет 0xE9 в начале)')
+            raise ImageError('not an ESP32 app image (no 0xE9 magic)')
         self.header = bytearray(d[:24])
         n = d[1]
         segs, off = [], 24
@@ -56,7 +56,7 @@ class AppImage:
         for i, (va, _) in enumerate(self.segs):
             if kind_of(va) == kind:
                 return i
-        raise ImageError(f'в образе нет сегмента {kind}')
+        raise ImageError(f'the image has no {kind} segment')
 
     def end(self, kind):
         """Первый свободный адрес за сегментом, выровненный на 16."""
@@ -69,19 +69,19 @@ class AppImage:
             if sva <= va < sva + len(d):
                 o = va - sva
                 if o + n > len(d):
-                    raise ImageError(f'чтение {va:#x}+{n} вылезает за сегмент')
+                    raise ImageError(f'read {va:#x}+{n} runs past the segment')
                 return bytes(d[o:o + n])
-        raise ImageError(f'{va:#x} не отображён')
+        raise ImageError(f'{va:#x} is not mapped')
 
     def write(self, va, data):
         for sva, d in self.segs:
             if sva <= va < sva + len(d):
                 o = va - sva
                 if o + len(data) > len(d):
-                    raise ImageError(f'запись {va:#x}+{len(data)} вылезает за сегмент')
+                    raise ImageError(f'write {va:#x}+{len(data)} runs past the segment')
                 d[o:o + len(data)] = data
                 return
-        raise ImageError(f'{va:#x} не отображён')
+        raise ImageError(f'{va:#x} is not mapped')
 
     def append(self, kind, blob, align=16):
         """Дописать блок в конец IROM/DROM. Возвращает виртуальный адрес."""
@@ -109,7 +109,7 @@ class AppImage:
         csum = 0xEF
         for va, d in self.segs:
             if len(d) % 4:
-                raise ImageError(f'сегмент {va:#x}: длина {len(d)} не делится на 4')
+                raise ImageError(f'segment {va:#x}: length {len(d)} is not a multiple of 4')
             out += struct.pack('<II', va, len(d))
             out += d
             for b in d:
@@ -123,10 +123,10 @@ class AppImage:
         for va, d in self.segs:
             off += 8
             if kind_of(va) in (DROM, IROM) and (off - va) & 0xFFFF:
-                raise ImageError(f'сегмент {va:#x} не конгруэнтен: кэш отобразит мусор')
+                raise ImageError(f'segment {va:#x} is not congruent: the cache would map garbage')
             off += len(d)
         if len(out) > PART_SIZE:
-            raise ImageError(f'образ {len(out)} Б не влезает в раздел ota_0 ({PART_SIZE} Б)')
+            raise ImageError(f'image of {len(out)} B does not fit the ota_0 partition ({PART_SIZE} B)')
         return bytes(out)
 
     def free_bytes(self):
@@ -139,7 +139,7 @@ def jal(src, dst):
     """Безусловный переход `j dst`, 4 байта, — так ставятся хуки."""
     off = dst - src
     if off & 1 or not -(1 << 20) <= off < (1 << 20):
-        raise ImageError(f'j {src:#x} -> {dst:#x}: не дотягивается ({off:#x})')
+        raise ImageError(f'j {src:#x} -> {dst:#x}: out of reach ({off:#x})')
     o = off & 0x1FFFFF
     ins = (((o >> 20) & 1) << 31 | ((o >> 1) & 0x3FF) << 21 | ((o >> 11) & 1) << 20 |
            ((o >> 12) & 0xFF) << 12 | 0x6F)

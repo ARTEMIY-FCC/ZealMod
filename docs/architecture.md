@@ -1,163 +1,171 @@
-# Как ZealMod устроен внутри
+# How ZealMod works inside
 
-Коротко: стоковая прошивка остаётся на месте, мы дописываем в её образ свой
-код, ставим три перемычки по четыре байта — и получаем свою задачу, свой экран
-и свои кнопки. Всё остальное — следствия из того, чего в этих часах нет.
+[Русская версия](ru/architecture.md)
 
-## Железо и стоковая прошивка
+The short version: the stock firmware stays where it is, we append our own code
+to its image and replace three four-byte instructions — and get our own task,
+our own screen and our own buttons. Everything else follows from what this
+watch does not have.
 
-Zeal Smart Timer — это **ESP32-C3** (RISC-V, 160 МГц), 4 МБ флеша, экран
-ST7789 240×240 по SPI, четыре кнопки, ESP-IDF 4.4 и LVGL 8. Файл прошивки
-`.gbl` — не Silicon Labs, а обычный образ приложения ESP-IDF: заголовок,
-сегменты, контрольный байт и SHA-256 в хвосте.
+## The hardware and the stock firmware
 
-Разделы флеша:
+The Zeal Smart Timer is an **ESP32-C3** (RISC-V, 160 MHz) with 4 MB of flash, a
+240×240 ST7789 over SPI, four buttons, ESP-IDF 4.4 and LVGL 8. The `.gbl` file
+is not a Silicon Labs image but an ordinary ESP-IDF application image: a
+header, segments, a checksum byte and a SHA-256 at the end.
+
+Flash layout:
 
 ```
 0x009000 phy_init     0x00a000 nvs        0x00e000 otadata
 0x010000 myfat 960K   0x100000 ota_0 2M   0x300000 ota_1 1M
 ```
 
-В `ota_0` лежит сам таймер, в `ota_1` — отдельное приложение обновления по
-Bluetooth. ZealMod целиком помещается в `ota_0`: мы просто переписываем этот
-раздел собранным образом. `otadata` трогать не нужно.
+`ota_0` holds the timer itself, `ota_1` a separate Bluetooth-update app.
+ZealMod fits entirely inside `ota_0`: we simply rewrite that partition with the
+composed image. `otadata` is left alone.
 
-## Три перемычки
+## Three jumps
 
-Мод цепляется к чужому коду ровно в трёх местах — вместо четырёх байт
-прошивки ставится `j` на наш трамплин, а трамплин доигрывает затёртые
-инструкции и прыгает обратно:
+The mod hooks into somebody else's code in exactly three places. Four bytes of
+the firmware are replaced with a `j` to our trampoline, and the trampoline
+replays the overwritten instructions and jumps back:
 
-| адрес | что за место | зачем |
+| address | what it is | why |
 | --- | --- | --- |
-| `0x42004C76` | пролог `TDisplay_task` | один раз за загрузку: создать свою задачу |
-| `0x42005D96` | flush-колбэк LVGL | забрать экран, когда мод открыт |
-| `0x42005426` | рассылка событий кнопок | не отдавать прошивке наши удержания |
+| `0x42004C76` | prologue of `TDisplay_task` | once per boot: create our task |
+| `0x42005D96` | the LVGL flush callback | take the screen while the mod is open |
+| `0x42005426` | the button event dispatch | do not hand our long presses to the firmware |
 
-Адреса и ожидаемые байты лежат в `studio/zealmod/profiles/zeal-v1.json` вместе
-с SHA-256 стоковой прошивки. Studio сверяет её перед сборкой: если версия
-другая, адреса будут не те, и лучше остановиться.
+The addresses and the expected bytes live in
+`studio/zealmod/profiles/zeal-v1.json` together with the SHA-256 of the stock
+firmware. Studio checks it before composing: a different version means
+different addresses, and stopping is the right move.
 
-## Где взять память под код
+## Where to find room for code
 
-Самое неочевидное место. У ESP32-C3 таблица MMU **общая для шины команд и шины
-данных**: номер записи считается как `(адрес & 0x7FFFFF) >> 16` — и неважно,
-читают по нему код (`0x42……`) или данные (`0x3C……`). У стоковой прошивки
-записи 0…6 заняты кодом, 7…25 — данными, поэтому дописать код в конец IROM
-можно только до первой страницы данных: **47 КБ**, и всё.
+The least obvious part. On the ESP32-C3 the MMU table is **shared between the
+instruction bus and the data bus**: the entry index is `(addr & 0x7FFFFF) >> 16`
+no matter whether code (`0x42……`) or data (`0x3C……`) is read through it. The
+stock firmware uses entries 0…6 for code and 7…25 for data, so code can only
+grow up to the first data page: **47 KB**, and that is it.
 
-Поэтому код мода живёт в двух местах:
+So the mod's code lives in two places:
 
-* **трамплины** (204 байта) — в хвосте стоковой IROM, только они и обязаны
-  быть там: четырёхбайтный `j` бьёт не дальше чем на мегабайт;
-* **весь остальной код** — физически внутри сегмента данных, на границе
-  страницы флеша. При первом же вызове трамплин отдаёт свободной записи MMU
-  (40-й) ту же страницу флеша ещё раз — уже как код. Одна запись = 64 КБ.
+* **the trampolines** (204 bytes) go into the tail of the stock IROM — only
+  they have to be there, because a four-byte `j` reaches no further than a
+  megabyte;
+* **all the rest of the code** sits physically inside the data segment, on a
+  flash page boundary. On the first call the trampoline hands the same flash
+  page to a free MMU entry (number 40) — this time as code. One entry = 64 KB.
 
-Модулям этого мало, поэтому Studio при сборке добавляет столько страниц,
-сколько нужно, и записывает их в таблицу `zm_tab.map`; `zg_boot()` отображает
-их до первого обращения. Виртуально страницы идут подряд с `0x42280000`,
-физически — где придётся.
+Modules need more than that, so Studio adds as many pages as required and
+writes them into `zm_tab.map`; `zg_boot()` maps them before anything can call
+into them. Virtually the pages are consecutive from `0x42280000`; physically
+they land wherever there is room.
 
-## Где взять память под данные
+## Where to find room for data
 
-В куче прошивки к моменту нашего старта остаётся 8–16 КБ — на игру не хватит.
-Зато у LVGL есть полноэкранный буфер **115 200 байт**, и его можно забрать:
-находим `lv_disp_t`, ставим паузу его таймеру перерисовки — LVGL перестаёт
-рисовать, буфер наш до перезагрузки. Глушить LVGL невозвратом
-`lv_disp_flush_ready` нельзя: главная задача прошивки начнёт крутиться
-вхолостую, и сторожевой таймер прибьёт систему.
+By the time our code starts, the firmware's heap has 8–16 KB left — not enough
+for a game. But LVGL owns a full-screen buffer of **115 200 bytes**, and it can
+be taken: find the `lv_disp_t`, pause its redraw timer, and LVGL stops drawing
+— the buffer is ours until reboot. Silencing LVGL by never calling
+`lv_disp_flush_ready` does not work: the firmware's main task then spins and
+the watchdog kills the system.
 
-Статические переменные модулей живут в RTC-памяти (около 7 КБ), всё остальное
-раздаёт `mem_alloc()` из общего пула. Освобождения нет вовсе: выход из мода —
-это перезагрузка, она и есть освобождение.
+A module's static variables live in RTC memory (about 7 KB); everything else
+comes from `mem_alloc()` out of a shared pool. There is no free at all: leaving
+the mod is a reboot, and that is the free.
 
-## Что переживает выключение
+## What survives a power cut
 
-RTC-память держится, пока есть питание. Часы, рекорды и настройки поэтому
-уходят во флеш — в последний сектор `ota_1` (в свой собственный раздел писать
-нельзя, ESP-IDF считает это опасной записью и вызывает `abort()`).
+RTC memory holds as long as there is power. So the clock, the high scores and
+the settings go to flash — into the last sector of `ota_1` (you may not write
+into your own partition; ESP-IDF calls that dangerous and aborts).
 
-Писать флеш можно **только в самом начале загрузки**, из хука
-`TDisplay_task`: позже прошивка поднимает SPI, её драйвер лезет во флеш из
-прерывания, а на время записи кэш выключен — и всё падает.
+Flash may only be written **at the very start of boot**, from the
+`TDisplay_task` hook: later the firmware has SPI up, its driver reaches into
+flash from an interrupt, and the cache is off during a write — everything
+falls over.
 
-## Таблица zm_tab
+## The zm_tab table
 
-Ядро прошивки собирается один раз и ничего не знает ни о списке программ, ни о
-теме. Всё это лежит в структуре `zm_tab` в отдельной секции `.zmtab`, и
-Studio переписывает её прямо в готовом образе:
+The core is built once and knows nothing about the list of programs or the
+theme. All of that lives in a `zm_tab` structure in its own `.zmtab` section,
+and Studio rewrites it directly inside the finished image:
 
 ```
-magic 'ZMOD' | страницы MMU | версия, ABI, конец .bss | сколько модулей
-настройки (кнопки, удержания, звук, заставка)
-тема (цвета, вид меню, обои, логотип)
-модули[32] (адрес run(), подпись, обложка, палитра, кнопка выхода)
+magic 'ZMOD' | MMU pages | version, ABI, end of .bss | number of modules
+settings (buttons, hold times, sound, splash, language)
+theme (colours, menu style, wallpaper, logo)
+modules[32] (address of run(), caption, cover, palette, exit button)
 ```
 
-Раскладку описывают сразу два файла — `work/src/zmtab.h` и
-`studio/zealmod/tab.py`; с обеих сторон стоят проверки размеров, чтобы они не
-разъехались.
+The layout is described twice — in `work/src/zmtab.h` and
+`studio/zealmod/tab.py` — and both sides assert their sizes so they cannot
+drift apart.
 
-Один подвох стоил отладки на живом железе: пока таблица определялась в том же
-файле, где её читают, компилятор видел нулевой инициализатор и честно
-сворачивал все проверки в «модулей нет». Поэтому `zm_tab` определён отдельно,
-в `zmtab_data.c`, и больше там ничего нет.
+One trap cost a debugging session on real hardware: while the table was defined
+in the same file that reads it, the compiler saw the zero initialiser and
+happily folded every check into "no modules". That is why `zm_tab` is defined
+on its own, in `zmtab_data.c`, and nothing else lives there.
 
-## Компоновщик модулей
+## The module linker
 
-`.zm` везёт перемещаемый объектный файл (`ld -r`), а расставляет его по
-адресам Studio — своим компоновщиком на Python
-(`studio/zealmod/link.py`, `reloc.py`). Он умеет ровно то, что порождает
-компилятор с ключами SDK: `R_RISCV_CALL_PLT`, `HI20`, `LO12_I`, `LO12_S`,
-`32` (и ещё десяток на всякий случай).
+A `.zm` carries a relocatable object file (`ld -r`); the addresses are assigned
+by Studio, with its own linker in Python (`studio/zealmod/link.py`,
+`reloc.py`). It handles exactly what the compiler emits with the SDK flags:
+`R_RISCV_CALL_PLT`, `HI20`, `LO12_I`, `LO12_S`, `32`, and a dozen more just in
+case.
 
-Смысл в том, что **на машине пользователя не нужен компилятор**: программы
-приходят готовым кодом, а связывание с ядром — это подстановка адресов из
-таблицы символов ядра. Проверка совместимости получается бесплатно: если
-модуль просит имя, которого у ядра нет, это видно до заливки.
+The point is that **the user's machine needs no compiler**: programs arrive as
+machine code, and linking against the core is a matter of substituting
+addresses from the core's symbol table. The compatibility check comes for free:
+if a module asks for a name the core does not export, you see it before
+flashing.
 
-Что компоновщик делает правильно, проверяется автоматически:
+That the linker gets it right is checked automatically:
 
 ```sh
 python3 studio/tests/test_link.py
 ```
 
-Каждый модуль раскладывается дважды — нами и настоящим GNU ld на тех же
-адресах, — и результаты сравниваются побайтно.
+Every module is laid out twice — by us and by the real GNU ld at the same
+addresses — and the results are compared byte for byte.
 
-## Сборка образа
+## Composing the image
 
-`studio/zealmod/build.py` собирает всё вместе:
+`studio/zealmod/build.py` puts it all together:
 
 ```
-IROM  [ стоковый код ][ трамплины ]
-DROM  [ стоковые данные ][ страница кода 0: ядро + модули ]
-      [ данные ядра + данные модулей ][ ещё страницы кода ]
+IROM  [ stock code ][ trampolines ]
+DROM  [ stock data ][ code page 0: core + modules ]
+      [ core data + module data ][ more code pages ]
 ```
 
-Дальше — правила, за которые ругается бутлоадер: длина каждого сегмента кратна
-четырём, а у отображаемых через кэш сегментов файловое смещение обязано быть
-сравнимо с виртуальным адресом по модулю 64 КБ (поэтому рост сегмента данных
-добивается нулями до кратности 64 КБ). В конце пересчитываются контрольный
-байт и SHA-256.
+Then come the rules the bootloader enforces: every segment length is a multiple
+of four, and for cache-mapped segments the file offset must be congruent to the
+virtual address modulo 64 KB (which is why growth of the data segment is padded
+to a multiple of 64 KB). Finally the checksum byte and the SHA-256 are
+recomputed.
 
-## Как собрать всё с нуля
+## Building everything from scratch
 
 ```sh
-cd work && make core          # ядро (без -flto: имена нужны компоновщику)
-python3 ../studio/zealmod.py mods     # модули, темы, комплект в dist/
+cd work && make core          # the core (without -flto: the linker needs real symbol names)
+python3 ../studio/zealmod.py mods     # modules, themes and the kit in dist/
 python3 ../studio/zealmod.py build --all -o build/zealmod.gbl
 python3 ../studio/zealmod.py flash build/zealmod.gbl
 ```
 
-`make` в `work/` по-прежнему собирает «всё внутри ядра» — это сборка
-разработчика, удобная для быстрых правок самих игр.
+`make` in `work/` still builds the "everything inside the core" image — the
+developer build, handy for iterating on the games themselves.
 
-## Инструменты отладки
+## Debugging tools
 
-* `work/tools/timer.py` — пульт по USB: открыть меню, нажать кнопку, **снять
-  кадр прямо с часов** (`cmd m 1.5 shot.png`), почитать лог.
-* `zealmod emu` — те же исходники под SDL: меню, игры и заставка на
-  компьютере, со сценарием и снимками для проверок.
-* `work/tools/verify.py` — проверяет собранный образ так же, как бутлоадер.
+* `work/tools/timer.py` — a remote over USB: open the menu, press a button,
+  **grab a frame straight from the watch** (`cmd m 1.5 shot.png`), read the log.
+* `zealmod emu` — the same sources under SDL: the menu, the games and the
+  splash on your computer, with scripted input and screenshots for checks.
+* `work/tools/verify.py` — validates a composed image the way the bootloader
+  does.

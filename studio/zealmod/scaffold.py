@@ -9,15 +9,17 @@ from pathlib import Path
 
 from . import tab
 
-APP_C = '''/* {name} — программа для ZealMod.
+APP_C = '''/* {name} — a ZealMod program.
  *
- * Всё, что можно звать из модуля, объявлено в plat.h, game.h, fx.h и snd.h.
- * Правила простые:
- *   - изменяемых данных с начальным значением быть не должно (их некому
- *     копировать в ОЗУ): либо const, либо обнулённые;
- *   - память берётся у mem_alloc(), она обнулена и живёт до выхода;
- *   - кадр рисуется в fb_begin()/fb_next(), между кадрами обязателен
- *     game_frame_wait(), иначе часы решат, что мод завис.
+ * Everything you may call is declared in plat.h, game.h, fx.h and snd.h.
+ * Three rules make watch code different from ordinary code:
+ *   - no initialised mutable data (nothing copies it to RAM): use const, or
+ *     assign inside zm_main();
+ *   - memory comes from mem_alloc(): zeroed, and freed for you on exit;
+ *   - a frame is drawn between fb_begin() and fb_next(), and every frame must
+ *     end with game_frame_wait() or the watch decides the mod has hung.
+ *
+ * Texts go through TR("English", "Русский") — the language is chosen in Studio.
  */
 #include "plat.h"
 #include "game.h"
@@ -26,7 +28,7 @@ APP_C = '''/* {name} — программа для ZealMod.
 
 void zm_main(void)
 {{
-    game_exit_button(BTN_UP);        /* этой кнопкой выходят: держать 1,4 с */
+    game_exit_button(BTN_UP);        /* hold this button for 1.4 s to leave */
     int x = SCR_W / 2, y = SCR_H / 2;
     uint32_t last = now_ms();
 
@@ -46,36 +48,41 @@ void zm_main(void)
             gfx_disc(b, x, y, 16, RGB(110, 168, 255));
             gfx_text_c(b, SCR_W / 2, 36, &font_m, WHITE, "{name}");
             gfx_text_c(b, SCR_W / 2, 214, &font_s, RGB(140, 146, 162),
-                       "◀ ▶ двигать, ▲ держать — выход");
+                       TR("◀ ▶ move, hold ▲ to exit",
+                          "◀ ▶ двигать, ▲ держать — выход"));
         }}
-        game_frame_wait(&last, 33);   /* ~30 кадров в секунду */
+        game_frame_wait(&last, 33);   /* ~30 frames per second */
     }}
 }}
 '''
 
 MODULE_JSON = {
-    'id': 'myapp', 'name': 'Моя программа', 'version': '1.0', 'author': 'я',
+    'id': 'myapp', 'name': 'My program', 'name_ru': 'Моя программа',
+    'version': '1.0', 'author': 'me',
     'kind': 'game', 'entry': 'zm_main', 'exit_button': 'up', 'exit_hold': 1.4,
-    'description': 'Что эта программа делает.',
+    'description': 'What this program does.',
+    'description_ru': 'Что эта программа делает.',
     'cover': 'cover.png', 'sources': ['src/main.c'],
 }
 
 README = '''# {name}
 
-Программа для ZealMod (таймер Zeal).
+A program for ZealMod (the Zeal speedcubing timer).
 
-    zealmod pack .            # собрать {id}.zm
-    zealmod check {id}.zm     # проверить совместимость
-    zealmod emu .             # посмотреть на компьютере
+    zealmod pack .            # build {id}.zm
+    zealmod check {id}.zm     # check compatibility
+    zealmod emu .             # run it on your computer
 
-Готовый .zm перетащите в окно ZealMod Studio — и он окажется в списке программ.
+Drop the resulting .zm onto the ZealMod Studio window and it appears in the
+list of programs.
 
-Что можно звать из кода — см. `sdk/include/plat.h` и `game.h`.
+The API lives in `dist/sdk/include` — see `plat.h` and `game.h`, and
+`docs/api.md` for the whole reference.
 '''
 
 THEME_JSON = {
     'format': 'zealmod-theme/1',
-    'name': 'Моя тема', 'author': 'я', 'layout': 'coverflow',
+    'name': 'My theme', 'name_ru': 'Моя тема', 'author': 'me', 'layout': 'coverflow',
     'reflection': 42, 'spacing': 92,
     'colors': {
         'bg_top': '#101220', 'bg_bot': '#030306',

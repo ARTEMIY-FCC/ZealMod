@@ -1,13 +1,13 @@
-"""Командная строка ZealMod.
+"""ZealMod command line.
 
-  zealmod devices                 кто подключён по USB
-  zealmod mods                    собрать встроенные приложения в .zm
-  zealmod build --all -o out.gbl  собрать образ
-  zealmod check игра.zm           совместима ли программа с этими часами
-  zealmod pack каталог/           упаковать свою программу в .zm
-  zealmod new app мояигра         заготовка новой программы
-  zealmod flash out.gbl           залить в часы
-  zealmod studio                  графическая программа в браузере
+  zealmod devices                 what is connected over USB
+  zealmod mods                    build the built-in programs into .zm files
+  zealmod build --all -o out.gbl  compose an image
+  zealmod check game.zm           is this program compatible with the watch
+  zealmod pack folder/            pack your own program into a .zm
+  zealmod new app mygame          scaffold a new program
+  zealmod flash out.gbl           write the image to the watch
+  zealmod studio                  the graphical app, in your browser
 """
 import argparse
 import json
@@ -20,7 +20,7 @@ from .res import Bundle
 
 
 def human(n):
-    return f'{n/1024:.1f} КБ' if n >= 1024 else f'{n} Б'
+    return f'{n/1024:.1f} KB' if n >= 1024 else f'{n} B'
 
 
 def _bundle(args):
@@ -32,13 +32,13 @@ def cmd_devices(args):
     from . import device
     ps = device.ports()
     if not ps:
-        print('часов не вижу. Подключи кабелем, который умеет данные, и повтори.')
+        print('no timer in sight. Use a cable with data wires and try again.')
         return 1
     for p in ps:
         mark = '*' if p['score'] else ' '
         print(f'{mark} {p["port"]:<28} {p["vid"]}:{p["pid"]} {p["desc"]}')
     if not device.esptool_ok():
-        print('\n! для заливки нужен esptool: pip install esptool')
+        print('\n! flashing needs esptool: pip install esptool')
     return 0
 
 
@@ -68,7 +68,7 @@ def cmd_mods(args):
             zt = pack_theme_dir(td.parent, b.dist / 'themes' / f'{td.parent.name}.zt')
             print(f'{td.parent.name:<10} -> {zt.relative_to(b.root)}')
         except Exception as e:
-            print(f'{td.parent.name}: тема не собралась — {e}')
+            print(f'{td.parent.name}: theme failed — {e}')
     # заголовки, по которым собираются чужие модули
     sdk = b.dist / 'sdk' / 'include'
     sdk.mkdir(parents=True, exist_ok=True)
@@ -83,7 +83,7 @@ def cmd_mods(args):
     stock = b.root / 'original.gbl'
     if stock.exists() and not (b.dist / 'base' / 'zeal-stock.gbl').exists():
         (b.dist / 'base' / 'zeal-stock.gbl').write_bytes(stock.read_bytes())
-    print(f'готово: {done} модулей')
+    print(f'done: {done} modules')
     return 0
 
 
@@ -110,7 +110,7 @@ def _load_modules(b, names):
         if not p.exists():
             p = have.get(n)
         if not p:
-            raise BuildError(f'не нашёл модуль {n}')
+            raise BuildError(f'module {n} not found')
         m, _ = pack.read_module(p)
         out.append(m)
     return out
@@ -123,13 +123,13 @@ def cmd_build(args):
     if args.all or not names:
         names = _default_order(b)
     if not names:
-        print('модулей нет: собери их командой `zealmod mods`')
+        print('no modules: build them with `zealmod mods`')
         return 1
     mods = _load_modules(b, names)
+    cfg = {'lang': args.lang}
     theme, assets, _src = (tab.DEFAULT_THEME, {}, {})
     if args.theme:
-        theme, assets, _src = pack.read_theme(args.theme)
-    cfg = {}
+        theme, assets, _src = pack.read_theme(args.theme, args.lang)
     for kv in args.set or []:
         k, _, v = kv.partition('=')
         v = v.strip()
@@ -141,23 +141,23 @@ def cmd_build(args):
             cfg[k.strip()] = v
     ok, got, want = b.base_ok(prof)
     if not ok and not args.force:
-        print(f'! стоковый образ не тот, под который собран мод\n  есть  {got}\n'
-              f'  нужен {want}\n  (--force, если уверен)')
+        print(f'! the stock image is not the one this mod was built against\n'
+              f'  have {got}\n  want {want}\n  (--force if you are sure)')
         return 1
     try:
         image, rep = build(b.base.read_bytes(), b.core.read_bytes(), mods, theme=theme,
                            cfg=cfg, profile=prof, theme_assets=assets)
     except BuildError as e:
-        print(f'не собралось: {e}')
+        print(f'build failed: {e}')
         return 1
     out = Path(args.out or (b.dist / 'zealmod.gbl'))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(image)
     for m in rep.modules:
-        print(f'  {m["id"]:<10} код {human(m["code"]):>10}  данные {human(m["data"]):>10}'
-              f'  RTC {m["bss"]} Б')
-    print(f'{out}: {human(rep.size)}, свободно {human(rep.free)}; '
-          f'страниц кода {rep.pages}, RTC под модули {rep.bss} Б')
+        print(f'  {m["id"]:<10} code {human(m["code"]):>10}  data {human(m["data"]):>10}'
+              f'  RTC {m["bss"]} B')
+    print(f'{out}: {human(rep.size)}, {human(rep.free)} free; '
+          f'{rep.pages} code pages, {rep.bss} B of RTC for modules')
     return 0
 
 
@@ -170,10 +170,10 @@ def cmd_check(args):
     for path in args.files:
         m, man = pack.read_module(path)
         r = pack.check_module(m, exports)
-        print(f'{m.id} «{m.title}» {man.get("version", "")} — '
-              f'{"подходит" if r["ok"] else "НЕ ПОДХОДИТ"}')
-        print(f'  код {human(r["code"])}, данные {human(r["data"])}, RTC {r["bss"]} Б, '
-              f'обращений к ядру {len(r["imports"])}')
+        print(f'{m.id} "{m.title}" {man.get("version", "")} — '
+              f'{"compatible" if r["ok"] else "NOT COMPATIBLE"}')
+        print(f'  code {human(r["code"])}, data {human(r["data"])}, RTC {r["bss"]} B, '
+              f'{len(r["imports"])} calls into the core')
         for p in r['problems']:
             print(f'  ! {p}')
         rc |= 0 if r['ok'] else 1
@@ -186,7 +186,7 @@ def cmd_pack(args):
     src = Path(args.dir)
     manf = src / 'module.json'
     if not manf.exists():
-        print(f'нет {manf}')
+        print(f'{manf} not found')
         return 1
     spec = json.loads(manf.read_text('utf-8'))
     out = Path(args.out or b.dist / 'modules')
@@ -203,8 +203,8 @@ def cmd_pack(args):
 def cmd_new(args):
     from .scaffold import new_app, new_theme
     p = (new_app if args.kind == 'app' else new_theme)(Path(args.name))
-    print(f'создано: {p}')
-    print(f'дальше:  zealmod {"pack" if args.kind == "app" else "theme"} {p}')
+    print(f'created: {p}')
+    print(f'next:  zealmod {"pack" if args.kind == "app" else "theme"} {p}')
     return 0
 
 
@@ -220,20 +220,20 @@ def cmd_flash(args):
     b = _bundle(args)
     img = Path(args.image or (b.dist / 'zealmod.gbl'))
     if not img.exists():
-        print(f'нет образа {img}')
+        print(f'no image at {img}')
         return 1
     ps = device.ports()
     port = args.port or (ps[0]['port'] if ps else None)
     if not port:
-        print('часов не вижу')
+        print('no timer in sight')
         return 1
     print(f'{img} -> {port}')
     try:
         device.flash(img, port, on_line=lambda s: print('  ' + s))
     except device.DeviceError as e:
-        print(f'не залилось: {e}')
+        print(f'flashing failed: {e}')
         return 1
-    print('готово, часы перезагрузятся сами')
+    print('done, the watch reboots on its own')
     return 0
 
 
@@ -249,7 +249,7 @@ def cmd_backup(args):
     except device.DeviceError as e:
         print(e)
         return 1
-    print(f'копия флеша: {out}')
+    print(f'flash backup: {out}')
     return 0
 
 
@@ -274,84 +274,86 @@ def cmd_info(args):
     prof = b.profile(args.profile)
     ok, got, want = b.base_ok(prof)
     print(f'ZealMod {__version__}')
-    print(f'  комплект   {b.root}')
-    print(f'  прошивка   {b.base.name} — {"та самая" if ok else "ЧУЖАЯ (" + got[:12] + ")"}')
-    print(f'  ядро       {b.core}')
-    print(f'  модулей    {len(b.modules())}, тем {len(b.themes())}')
+    print(f'  kit       {b.root}')
+    print(f'  firmware  {b.base.name} — {"the expected one" if ok else "FOREIGN (" + got[:12] + ")"}')
+    print(f'  core      {b.core}')
+    print(f'  modules   {len(b.modules())}, themes {len(b.themes())}')
     return 0
 
 
 # --- разбор командной строки ----------------------------------------------
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog='zealmod', description='ZealMod: своя прошивка '
-                                 'для таймера Zeal')
-    ap.add_argument('--bundle', help='каталог комплекта (по умолчанию рядом с программой)')
-    ap.add_argument('--profile', default='zeal-v1', help='профиль устройства')
+    ap = argparse.ArgumentParser(prog='zealmod',
+                                 description='ZealMod: your own firmware for the Zeal timer')
+    ap.add_argument('--bundle', help='kit directory (defaults to the one next to this script)')
+    ap.add_argument('--profile', default='zeal-v1', help='device profile')
     ap.add_argument('-V', '--version', action='version', version=f'ZealMod {__version__}')
     sub = ap.add_subparsers(dest='cmd', required=True)
 
-    sub.add_parser('devices', help='кто подключён по USB').set_defaults(fn=cmd_devices)
+    sub.add_parser('devices', help='what is connected over USB').set_defaults(fn=cmd_devices)
 
-    p = sub.add_parser('mods', help='собрать встроенные приложения в .zm')
-    p.add_argument('--only', help='только эти идентификаторы, через запятую')
+    p = sub.add_parser('mods', help='build the built-in programs into .zm files')
+    p.add_argument('--only', help='only these ids, comma separated')
     p.set_defaults(fn=cmd_mods)
 
-    p = sub.add_parser('build', help='собрать образ прошивки')
-    p.add_argument('--all', action='store_true', help='взять все модули из каталога')
-    p.add_argument('--mods', help='идентификаторы или пути к .zm, через запятую')
-    p.add_argument('--theme', help='файл темы .zt')
-    p.add_argument('--set', action='append', help='настройка, например menu_hold_ms=1200')
-    p.add_argument('--force', action='store_true', help='собрать даже с чужой прошивкой')
-    p.add_argument('-o', '--out', help='куда положить .gbl')
+    p = sub.add_parser('build', help='compose a firmware image')
+    p.add_argument('--all', action='store_true', help='take every module in the kit')
+    p.add_argument('--mods', help='ids or paths to .zm files, comma separated')
+    p.add_argument('--theme', help='a .zt theme file')
+    p.add_argument('--lang', default='en', choices=('en', 'ru'),
+                   help='language of the firmware texts (default en)')
+    p.add_argument('--set', action='append', help='a setting, e.g. menu_hold_ms=1200')
+    p.add_argument('--force', action='store_true', help='build even against a foreign firmware')
+    p.add_argument('-o', '--out', help='where to write the .gbl')
     p.set_defaults(fn=cmd_build)
 
-    p = sub.add_parser('check', help='проверить .zm на совместимость')
+    p = sub.add_parser('check', help='check a .zm for compatibility')
     p.add_argument('files', nargs='+')
     p.set_defaults(fn=cmd_check)
 
-    p = sub.add_parser('pack', help='упаковать свою программу в .zm')
+    p = sub.add_parser('pack', help='pack your own program into a .zm')
     p.add_argument('dir')
     p.add_argument('-o', '--out')
     p.set_defaults(fn=cmd_pack)
 
-    p = sub.add_parser('new', help='заготовка программы или темы')
+    p = sub.add_parser('new', help='scaffold a program or a theme')
     p.add_argument('kind', choices=('app', 'theme'))
     p.add_argument('name')
     p.set_defaults(fn=cmd_new)
 
-    p = sub.add_parser('theme', help='упаковать каталог темы в .zt')
+    p = sub.add_parser('theme', help='pack a theme directory into a .zt')
     p.add_argument('dir')
     p.add_argument('-o', '--out')
     p.set_defaults(fn=cmd_theme)
 
-    p = sub.add_parser('flash', help='залить образ в часы')
+    p = sub.add_parser('flash', help='write an image to the watch')
     p.add_argument('image', nargs='?')
     p.add_argument('--port')
     p.set_defaults(fn=cmd_flash)
 
-    p = sub.add_parser('backup', help='снять полную копию флеша')
+    p = sub.add_parser('backup', help='read the whole flash into a file')
     p.add_argument('-o', '--out')
     p.add_argument('--port')
     p.set_defaults(fn=cmd_backup)
 
-    p = sub.add_parser('studio', help='графическая программа в браузере')
+    p = sub.add_parser('studio', help='the graphical app, in your browser')
     p.add_argument('--port', type=int, default=8777)
     p.add_argument('--no-browser', action='store_true')
     p.set_defaults(fn=cmd_studio)
 
-    p = sub.add_parser('emu', help='посмотреть программу на компьютере')
-    p.add_argument('dir', nargs='?', help='каталог с module.json (по умолчанию — всё)')
+    p = sub.add_parser('emu', help='run a program on your computer')
+    p.add_argument('dir', nargs='?', help='a directory with module.json (default: everything)')
     p.add_argument('args', nargs=argparse.REMAINDER,
-                   help='что передать эмулятору (после каталога)')
+                   help='arguments for the emulator (after the directory)')
     p.set_defaults(fn=cmd_emu)
 
-    sub.add_parser('info', help='что лежит в комплекте').set_defaults(fn=cmd_info)
+    sub.add_parser('info', help='what the kit contains').set_defaults(fn=cmd_info)
 
     args = ap.parse_args(argv)
     try:
         return args.fn(args)
     except (BuildError, pack.PackError, FileNotFoundError) as e:
-        print(f'ошибка: {e}')
+        print(f'error: {e}')
         return 1
     except KeyboardInterrupt:
         return 130

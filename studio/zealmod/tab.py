@@ -14,13 +14,16 @@ MAX_MMU = 16
 NAME_MAX = 32
 BUILD_MAX = 24
 
+LANGS = {'en': 0, 'ru': 1, '0': 0, '1': 1}
+LANG_NAMES = ['English', 'Русский']
+
 MAP_FMT = '<HH'
 MAP_SIZE = 4
 THEME_FMT = '<IBBBBHHHHHHHHHHIIIHH32s'
 THEME_SIZE = 76
 MOD_FMT = '<IIIIIHBB'
 MOD_SIZE = 24
-CFG_FMT = '<4sBBBBHHI4s'
+CFG_FMT = '<4sBBBBHHIB3s'
 CFG_SIZE = 20
 TAB_SIZE = 8 + MAX_MMU * MAP_SIZE + 16 + CFG_SIZE + THEME_SIZE + MAX_MODS * MOD_SIZE + BUILD_MAX
 
@@ -99,7 +102,9 @@ def pack_cfg(c):
                        int(c.get('exit_hold_ms', 1400)))
     # Метка: часы применяют настройки из образа, только если она изменилась.
     # Иначе после заливки старые значения из NVRAM затёрли бы новые.
-    return body + struct.pack('<I4s', _stamp(body), b'\0' * 4)
+    return body + struct.pack('<IB3s', _stamp(body),
+                              LANGS.get(str(c.get('lang', 'en')).lower(), 0),
+                              b'\0' * 3)
 
 
 def _stamp(body):

@@ -1,46 +1,52 @@
-# Как написать программу для ZealMod
+# Writing a program for ZealMod
 
-Программа для таймера — это `.zm`: zip-архив с готовым машинным кодом,
-обложкой и описанием. Пользователю компилятор не нужен, ему достаточно
-перетащить файл в окно Studio. Компилятор нужен только вам, автору.
+[Русская версия](ru/module.md)
+
+A program for the timer is a `.zm`: a zip archive with ready machine code, a
+cover and a manifest. Whoever installs it needs no compiler — they just drag
+the file onto the Studio window. The compiler is only needed by you, the
+author.
 
 ```sh
-python3 studio/zealmod.py new app моя_игра   # заготовка
-python3 studio/zealmod.py emu моя_игра       # посмотреть на компьютере
-python3 studio/zealmod.py pack моя_игра      # собрать моя_игра.zm
-python3 studio/zealmod.py check моя_игра.zm  # проверить совместимость
+python3 studio/zealmod.py new app mygame   # scaffold
+python3 studio/zealmod.py emu mygame       # run it on the computer
+python3 studio/zealmod.py pack mygame      # build mygame.zm
+python3 studio/zealmod.py check mygame.zm  # check compatibility
 ```
 
-Нужны `riscv64-elf-gcc` (macOS: `brew install riscv64-elf-gcc`) и SDL2 для
-эмулятора.
+You need `riscv64-elf-gcc` (macOS: `brew install riscv64-elf-gcc`) and SDL2 for
+the emulator.
 
-## Что получается в заготовке
+The full list of calls is in [api.md](api.md).
+
+## What the scaffold gives you
 
 ```
-моя_игра/
-  module.json    описание: имя, кнопка выхода, список исходников
-  cover.png      обложка 96×96 — то, что видно в меню
-  src/main.c     сама программа
+mygame/
+  module.json    manifest: name, exit button, list of sources
+  cover.png      96×96 cover — what the menu shows
+  src/main.c     the program itself
 ```
 
 `module.json`:
 
 ```json
 {
-  "id": "моя_игра",          идентификатор: по нему хранятся рекорды
-  "name": "Моя игра",        подпись в меню
+  "id": "mygame",              identifier: high scores are keyed by it
+  "name": "My game",           menu caption
+  "name_ru": "Моя игра",       caption when the watch is set to Russian
   "version": "1.0",
-  "author": "я",
-  "kind": "game",            game или app — только для списка в Studio
-  "entry": "zm_main",        функция, с которой всё начинается
-  "exit_button": "up",       какой кнопкой из неё выходят
-  "exit_hold": 1.4,          сколько секунд её держать
+  "author": "me",
+  "kind": "game",              game or app — only affects the Studio list
+  "entry": "zm_main",          the function it all starts from
+  "exit_button": "up",         which button leaves it
+  "exit_hold": 1.4,            how many seconds to hold it
   "cover": "cover.png",
   "sources": ["src/main.c"]
 }
 ```
 
-## Как выглядит программа
+## What a program looks like
 
 ```c
 #include "plat.h"
@@ -57,90 +63,79 @@ void zm_main(void)
         fb_begin();
         for (band *b; (b = fb_next()); ) {
             gfx_clear(b, RGB(12, 14, 22));
-            gfx_text_c(b, 120, 120, &font_m, WHITE, "привет");
+            gfx_text_c(b, 120, 120, &font_m, WHITE, TR("hello", "привет"));
         }
-        game_frame_wait(&last, 33);      /* ~30 кадров в секунду */
+        game_frame_wait(&last, 33);      /* ~30 frames per second */
     }
 }
 ```
 
-Три правила, из-за которых код на часах отличается от обычного:
+Three rules make watch code different from ordinary code:
 
-1. **Кадр рисуется полосами.** `fb_begin()` начинает кадр, `fb_next()` выдаёт
-   очередную полосу (`band`) — на нынешних часах она одна на весь экран, но
-   рассчитывать на это нельзя: рисуйте всю сцену внутри цикла.
-2. **Между кадрами обязателен `game_frame_wait()`.** Он и держит нужную
-   частоту, и отдаёт время системе: если этого не делать, сторожевой таймер
-   решит, что часы зависли, и перезагрузит их.
-3. **Возврат.** `game_quit()` становится единицей, когда пользователь подержал
-   кнопку выхода — из `zm_main()` надо просто вернуться.
+1. **A frame is drawn in bands.** `fb_begin()` starts a frame, `fb_next()`
+   hands out the next band. On today's watch there is a single band covering
+   the screen, but never rely on it: draw the whole scene inside the loop.
+2. **Every frame must end with `game_frame_wait()`.** It paces the frame and
+   gives time back to the system; skip it and the watchdog reboots the watch.
+3. **Returning.** `game_quit()` becomes true when the user has held the exit
+   button — just return from `zm_main()`.
 
-## Что можно звать
+## Two languages
 
-Всё объявлено в заголовках из `dist/sdk/include` (они же `work/src/*.h`):
-
-| файл | что там |
-| --- | --- |
-| `plat.h` | экран, кнопки, память, время, рисование, текст |
-| `game.h` | выход из программы, ожидание кадра, рекорды, диалоги |
-| `fx.h` | синус-косинус, корень, `fx_fmt` вместо `printf` |
-| `snd.h` | звук: `SND(snd_click)`, свои мелодии |
-
-Коротко о главном:
+The image carries both languages and picks one at runtime, so texts go through
+`TR()`:
 
 ```c
-gfx_clear/fill/frame/line/disc/ring/round/vgrad   фигуры
-gfx_blit8_scaled(...)                             картинка с растяжением
-gfx_text, gfx_text_c, gfx_text_w                  текст, UTF-8, есть кириллица
-in_poll, in_held, in_hit, in_rep, in_held_ms      кнопки
-mem_alloc(n)                                      память: обнулена, до выхода
-hi_get(0) / hi_set(0, v)                          рекорды, свои у каждой программы
-plat_rand, now_ms, plat_sleep_ms                  мелочи
+gfx_text_c(b, 120, 40, &font_m, WHITE, TR("Score", "Счёт"));
 ```
 
-## Ограничения, о которых лучше знать заранее
+For tables of labels there is `TRA()`, which picks one of two arrays. If you
+only care about one language, write the same string twice — nothing breaks.
 
-* **Нет изменяемых данных с начальным значением.** `static int x = 5;` не
-  сработает — секцию `.data` в часах некому копировать в ОЗУ, и сборщик такой
-  модуль отвергнет. Пишите `static int x;` и присваивайте в начале `zm_main()`,
-  либо `static const`.
-* **Нет 64-битного деления** — libgcc не подключается. Умножение можно.
-* **Нет `malloc`.** Есть `mem_alloc()`: память выдаётся из общего пула (около
-  16 КБ) и освобождается сама, когда программа заканчивается.
-* **Нет `printf`.** Есть `fx_fmt(buf, sizeof buf, "%d", v)`.
-* **`.bss` в дефиците.** Статические переменные модуля живут в RTC-памяти, её
-  на все программы около семи килобайт. Большие массивы берите `mem_alloc()`.
-* **Стек маленький** (12 КБ на всё), глубокая рекурсия опасна.
+## Limits worth knowing up front
 
-Всё это проверяется на этапе `pack` и `check`: если что-то не так, вам скажут
-словами, а не тишиной на часах.
+* **No initialised mutable data.** `static int x = 5;` will not work: there is
+  no one to copy a `.data` section into RAM, and the packer rejects such a
+  module. Write `static int x;` and assign at the start of `zm_main()`, or make
+  it `static const`.
+* **No 64-bit division** — libgcc is not linked. Multiplication is fine.
+* **No `malloc`.** There is `mem_alloc()`: memory comes from a shared pool
+  (about 16 KB) and is reclaimed when the program ends.
+* **No `printf`.** There is `fx_fmt(buf, sizeof buf, "%d", v)`.
+* **`.bss` is scarce.** A module's static variables live in RTC memory, about
+  seven kilobytes for all programs together. Big arrays belong in `mem_alloc()`.
+* **The stack is small** (12 KB for everything), so deep recursion is risky.
 
-## Свои данные
+All of this is checked at `pack` and `check` time: if something is wrong you
+get words, not silence on the watch.
 
-Если программе нужны картинки, уровни или таблицы, положите их файлами и
-опишите в `module.json`:
+## Your own data
+
+If the program needs images, levels or tables, keep them as files and declare
+them in `module.json`:
 
 ```json
 "blobs": { "my_level_data": "data/level1.bin" }
 ```
 
-В коде это обычный массив:
+In the code it is a plain array:
 
 ```c
 extern const uint8_t my_level_data[];
 ```
 
-Studio положит файл в образ и подставит адрес при установке. Так, например,
-устроен DOOM: 400 КБ карт и текстур лежат отдельным куском.
+Studio puts the file into the image and substitutes the address at install
+time. That is how DOOM works: 400 KB of maps and textures ride along as a
+separate chunk.
 
-## Что происходит при установке
+## What happens at install time
 
-`.zm` везёт **перемещаемый объектный файл** — машинный код без адресов.
-Studio раскладывает его секции по свободным местам образа, подставляет адреса
-функций ядра и правит инструкции (это компоновщик, `studio/zealmod/link.py`).
-Поэтому одна и та же программа встаёт в любой набор и в любом порядке, а
-проверка совместимости — это буквально «все ли имена, которые просит модуль,
-есть у ядра».
+A `.zm` carries a **relocatable object file** — machine code without addresses.
+Studio lays its sections out over the free space of the image, substitutes the
+addresses of the core functions and patches the instructions (that is the
+linker, `studio/zealmod/link.py`). This is why the same program fits into any
+selection in any order, and why the compatibility check is literally "does the
+core export every name this module asks for".
 
-Если ядро обновится и что-то из ABI исчезнет, `zealmod check` покажет это
-до заливки, а не после.
+If the core ever changes and drops something from the ABI, `zealmod check`
+tells you before flashing rather than after.

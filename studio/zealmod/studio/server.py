@@ -83,18 +83,20 @@ class Studio:
         known = [i for i in order if i in self.lib]
         return known + sorted(set(self.lib) - set(known))
 
-    def modules_json(self):
+    def modules_json(self, lang='en'):
         out = []
         for mid in self.order():
             m, man, path = self.lib[mid]
             if m is None:
                 out.append(dict(id=mid, name=man.get('name', mid), broken=True,
-                                problems=[man.get('error', 'не читается')]))
+                                problems=[man.get('error', 'unreadable')]))
                 continue
             chk = pack.check_module(m, self.exports)
-            out.append(dict(id=m.id, name=m.title, version=man.get('version', ''),
+            out.append(dict(id=m.id, name=m.names.get(lang) or m.title,
+                            version=man.get('version', ''),
                             author=man.get('author', ''), kind=man.get('kind', 'app'),
-                            description=man.get('description', ''),
+                            description=man.get(f'description_{lang}')
+                            or man.get('description', ''),
                             exit_button=man.get('exit_button', 'up'),
                             exit_hold=man.get('exit_hold', 1.4),
                             code=chk['code'], data=chk['data'], bss=chk['bss'],
@@ -103,12 +105,12 @@ class Studio:
                             self.b.modules_dir and man.get('author') == 'ZealMod'))
         return out
 
-    def themes_json(self):
+    def themes_json(self, lang='en'):
         out = [dict(id='__default__', name='ZealMod', builtin=True,
                     colors=self.theme_colors(tab.DEFAULT_THEME), layout=0)]
         for p in self.b.themes():
             try:
-                t, _assets, src = pack.read_theme(p)
+                t, _assets, src = pack.read_theme(p, lang)
             except pack.PackError as e:
                 out.append(dict(id=p.stem, name=p.stem, error=str(e)))
                 continue
@@ -123,13 +125,13 @@ class Studio:
                 ('bg_top', 'bg_bot', 'fl_top', 'fl_bot', 'line', 'accent', 'text',
                  'text_dim', 'shadow')}
 
-    def theme(self, tid):
+    def theme(self, tid, lang='en'):
         if not tid or tid == '__default__':
             return dict(tab.DEFAULT_THEME), {}
         p = self.b.themes_dir / f'{tid}.zt'
         if not p.exists():
-            raise BuildError(f'нет темы {tid}')
-        t, assets, _src = pack.read_theme(p)
+            raise BuildError(f'no theme {tid}')
+        t, assets, _src = pack.read_theme(p, lang)
         return t, assets
 
     # --- сборка ------------------------------------------------------------
@@ -139,12 +141,13 @@ class Studio:
         for mid in ids:
             item = self.lib.get(mid)
             if not item or item[0] is None:
-                raise BuildError(f'нет модуля {mid}')
+                raise BuildError(f'no module {mid}')
             mods.append(item[0])
-        theme, assets = self.theme(req.get('theme'))
+        cfg = req.get('cfg') or {}
+        lang = str(cfg.get('lang', 'en')).lower()
+        theme, assets = self.theme(req.get('theme'), lang)
         if req.get('layout') is not None:
             theme['layout'] = int(req['layout'])
-        cfg = req.get('cfg') or {}
         ok, got, want = self.b.base_ok(self.profile)
         image, rep = build(self.b.base.read_bytes(), self.b.core.read_bytes(), mods,
                            theme=theme, cfg=cfg, profile=self.profile,
@@ -161,7 +164,7 @@ class Studio:
 
     def start_job(self, title, fn):
         if self.job and not self.job.done:
-            raise BuildError('одно дело за раз: подождите, пока закончится текущее')
+            raise BuildError('one thing at a time: wait for the current job to finish')
         job = Job()
         job.title = title
         self.job = job
@@ -180,15 +183,15 @@ class Studio:
     def flash(self, port):
         from .. import device
         if self.image is None:
-            raise BuildError('сначала соберите образ')
+            raise BuildError('build the image first')
         tmp = self.b.dist / 'zealmod.gbl'
         tmp.parent.mkdir(parents=True, exist_ok=True)
         tmp.write_bytes(self.image)
 
         def work(job):
-            job.log(f'образ {len(self.image)} байт -> {port or "первые попавшиеся часы"}')
+            job.log(f'image of {len(self.image)} bytes -> {port or "the first timer found"}')
             device.flash(tmp, port, on_line=job.log)
-            job.log('готово: часы перезагрузятся сами')
+            job.log('done: the watch reboots on its own')
         return self.start_job('Заливка', work)
 
     def backup(self, port):
@@ -196,18 +199,18 @@ class Studio:
         out = self.b.dist / f'zeal-backup-{time.strftime("%Y%m%d-%H%M")}.bin'
 
         def work(job):
-            job.log(f'снимаю копию флеша в {out}')
+            job.log(f'reading the flash into {out}')
             device.backup(out, port, on_line=job.log)
-            job.log(f'копия сохранена: {out}')
+            job.log(f'backup saved: {out}')
         return self.start_job('Копия флеша', work)
 
     def restore_stock(self, port):
         from .. import device
 
         def work(job):
-            job.log('возвращаю заводскую прошивку')
+            job.log('restoring the stock firmware')
             device.flash(self.b.base, port, on_line=job.log)
-            job.log('готово')
+            job.log('done')
         return self.start_job('Заводская прошивка', work)
 
     # --- импорт ------------------------------------------------------------
@@ -215,11 +218,11 @@ class Studio:
         kind = 'module' if name.lower().endswith('.zm') else \
                'theme' if name.lower().endswith('.zt') else None
         if not kind:
-            raise BuildError('понимаю только .zm (программы) и .zt (темы)')
+            raise BuildError('only .zm (programs) and .zt (themes) are understood')
         try:
             zipfile.ZipFile(io.BytesIO(data)).testzip()
         except zipfile.BadZipFile:
-            raise BuildError('файл повреждён') from None
+            raise BuildError('the file is damaged') from None
         d = self.b.modules_dir if kind == 'module' else self.b.themes_dir
         d.mkdir(parents=True, exist_ok=True)
         p = d / Path(name).name
@@ -277,13 +280,14 @@ class Handler(BaseHTTPRequestHandler):
             if u.path.startswith('/static/'):
                 return self.send_file(WEB / u.path[len('/static/'):])
             if u.path == '/api/state':
+                lang = (q.get('lang') or ['en'])[0]
                 ok, got, want = s.b.base_ok(s.profile)
                 return self.send_json(dict(
                     version=__version__, bundle=str(s.b.root),
                     profile=dict(id=s.profile['id'], name=s.profile['name'],
                                  screen=s.profile.get('screen', [240, 240])),
                     base=dict(ok=ok, sha=got, want=want, name=s.b.base.name),
-                    modules=s.modules_json(), themes=s.themes_json(),
+                    modules=s.modules_json(lang), themes=s.themes_json(lang),
                     device=s.devices(), part=2 * 1024 * 1024))
             if u.path == '/api/devices':
                 return self.send_json(s.devices())
@@ -299,7 +303,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_bytes(png, 'image/png')
             if u.path == '/api/image':
                 if s.image is None:
-                    return self.send_error(409, 'образ ещё не собран')
+                    return self.send_error(409, 'the image is not built yet')
                 name = q.get('name', ['zealmod.gbl'])[0]
                 return self.send_bytes(s.image, 'application/octet-stream', name)
             return self.send_error(404)
@@ -363,13 +367,13 @@ def serve(bundle, port=8777, open_browser=True, profile='zeal-v1'):
     httpd = ThreadingHTTPServer(('127.0.0.1', port), Handler)
     url = f'http://127.0.0.1:{port}/'
     print(f'ZealMod Studio {__version__}')
-    print(f'  комплект: {bundle.root}')
-    print(f'  открыто:  {url}   (Ctrl+C чтобы закрыть)')
+    print(f'  kit:  {bundle.root}')
+    print(f'  open: {url}   (Ctrl+C to stop)')
     if open_browser:
         threading.Timer(0.4, lambda: webbrowser.open(url)).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print('\nдо встречи')
+        print('\nbye')
     finally:
         httpd.server_close()

@@ -33,16 +33,14 @@ class Bundle:
     def base(self):
         p = _first(self.dist / 'base' / 'zeal-stock.gbl', self.root / 'original.gbl')
         if not p:
-            raise FileNotFoundError('не нашёл стоковый образ (dist/base/zeal-stock.gbl '
-                                    'или original.gbl)')
+            raise FileNotFoundError('stock image not found (dist/base/zeal-stock.gbl or original.gbl)')
         return p
 
     @property
     def core(self):
         p = _first(self.dist / 'core' / 'zealmod-core.elf', self.fw / 'build' / 'core.elf')
         if not p:
-            raise FileNotFoundError('не нашёл ядро (dist/core/zealmod-core.elf); '
-                                    'собери его: cd work && make core')
+            raise FileNotFoundError('core not found (dist/core/zealmod-core.elf); build it: cd work && make core')
         return p
 
     @property
@@ -62,7 +60,7 @@ class Bundle:
     def profile(self, pid='zeal-v1'):
         p = _first(self.dist / 'profiles' / f'{pid}.json', PKG_PROFILES / f'{pid}.json')
         if not p:
-            raise FileNotFoundError(f'нет профиля {pid}')
+            raise FileNotFoundError(f'no device profile {pid}')
         return json.loads(p.read_text('utf-8'))
 
     # --- содержимое ------------------------------------------------------

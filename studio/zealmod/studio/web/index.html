@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,98 +16,118 @@
     </svg>
     <div>
       <h1>ZealMod Studio</h1>
-      <p id="sub">собираем прошивку…</p>
+      <p id="sub" data-i18n="loading">loading…</p>
     </div>
   </div>
   <div class="dev">
+    <select id="uilang" title="Interface language">
+      <option value="en">English</option>
+      <option value="ru">Русский</option>
+    </select>
     <span id="devdot" class="dot"></span>
-    <select id="port" title="порт таймера"></select>
-    <button id="rescan" class="ghost" title="искать заново">⟳</button>
+    <select id="port" title="Timer port"></select>
+    <button id="rescan" class="ghost" title="Scan again">⟳</button>
   </div>
 </header>
 
 <main>
-  <!-- ЛЕВО: что поставить -->
+  <!-- LEFT: what to install -->
   <section class="col apps">
     <div class="head">
-      <h2>Программы</h2>
-      <span class="hint"><span id="picked">0</span> выбрано</span>
+      <h2 data-i18n="programs">Programs</h2>
+      <span class="hint"><span id="picked">0</span> <span data-i18n="selected">selected</span></span>
     </div>
     <div id="list" class="list"></div>
     <div class="row">
-      <button id="addmod" class="ghost">+ добавить .zm</button>
-      <button id="allon" class="ghost">все</button>
-      <button id="alloff" class="ghost">никого</button>
+      <button id="addmod" class="ghost" data-i18n="add_zm">+ add .zm</button>
+      <button id="allon" class="ghost" data-i18n="all">all</button>
+      <button id="alloff" class="ghost" data-i18n="none">none</button>
     </div>
-    <p class="tip">Порядок в списке — порядок в меню часов. Перетаскивайте мышью.</p>
+    <p class="tip" data-i18n="order_tip">The order here is the order on the watch. Drag to rearrange.</p>
   </section>
 
-  <!-- ЦЕНТР: как это выглядит -->
+  <!-- MIDDLE: how it looks -->
   <section class="col look">
-    <div class="head"><h2>Вид</h2></div>
+    <div class="head"><h2 data-i18n="look">Look</h2></div>
     <div class="screen">
       <canvas id="preview" width="240" height="240"></canvas>
       <div class="bezel"><span></span><span></span></div>
     </div>
     <div class="field">
-      <label>Тема</label>
+      <label data-i18n="theme">Theme</label>
       <div class="row">
         <select id="theme"></select>
-        <button id="addtheme" class="ghost" title="загрузить свою">+ .zt</button>
+        <button id="addtheme" class="ghost" title="Load your own">+ .zt</button>
       </div>
       <div id="swatches" class="swatches"></div>
     </div>
     <div class="field">
-      <label>Меню</label>
+      <label data-i18n="menu_style">Menu</label>
       <div class="seg" id="layout">
-        <button data-v="0" class="on">обложки</button>
-        <button data-v="1">сетка</button>
-        <button data-v="2">список</button>
+        <button data-v="0" class="on" data-i18n="coverflow">covers</button>
+        <button data-v="1" data-i18n="grid">grid</button>
+        <button data-v="2" data-i18n="list">list</button>
       </div>
+      <p class="tip" data-i18n="controls_tip">On the watch: ◀ ▶ move, ▲ launch, ▼ back to the timer.</p>
     </div>
   </section>
 
-  <!-- ПРАВО: настройки -->
+  <!-- RIGHT: settings -->
   <section class="col cfg">
-    <div class="head"><h2>Кнопки и настройки</h2></div>
+    <div class="head"><h2 data-i18n="settings">Buttons and settings</h2></div>
 
     <div class="field">
-      <label>Назначение кнопок</label>
-      <p class="tip">У таймера четыре кнопки: две над экраном и две под ним.
-        Если стрелки перепутаны — поменяйте местами.</p>
+      <label data-i18n="lang">Firmware language</label>
+      <div class="row">
+        <select id="modlang">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+        </select>
+      </div>
+      <p class="tip" data-i18n="lang_tip">The language of everything the watch shows.</p>
+    </div>
+
+    <div class="field">
+      <label data-i18n="btnmap">Button mapping</label>
+      <p class="tip" data-i18n="btnmap_tip">The timer has four buttons: two above the screen
+        and two below. If the arrows are swapped, swap them here.</p>
       <div class="btnmap" id="btnmap"></div>
     </div>
 
     <div class="field">
-      <label>Вход в меню</label>
+      <label data-i18n="enter">Opening the menu</label>
       <div class="row">
         <select id="menubtn"></select>
         <input id="menuhold" type="range" min="600" max="3000" step="100" value="1500">
-        <span class="val" id="menuholdv">1,5 с</span>
+        <span class="val" id="menuholdv">1.5 s</span>
       </div>
-      <p class="tip">Держите эту кнопку столько времени на экране таймера — откроется ZealMod.</p>
+      <p class="tip" data-i18n="enter_tip">Hold this button for that long on the timer screen
+        and ZealMod opens.</p>
     </div>
 
     <div class="field">
-      <label>Выход из программы</label>
+      <label data-i18n="exit">Leaving a program</label>
       <div class="row">
         <input id="exithold" type="range" min="600" max="3000" step="100" value="1400">
-        <span class="val" id="exitholdv">1,4 с</span>
+        <span class="val" id="exitholdv">1.4 s</span>
       </div>
     </div>
 
     <div class="field">
-      <label>Разное</label>
-      <label class="check"><input type="checkbox" id="splash" checked> заставка при запуске</label>
-      <label class="check"><input type="checkbox" id="snd" checked> звук</label>
-      <label class="check"><input type="checkbox" id="mute" checked> глушить писк прошивки</label>
+      <label data-i18n="misc">Other</label>
+      <label class="check"><input type="checkbox" id="splash" checked>
+        <span data-i18n="splash">splash screen on start</span></label>
+      <label class="check"><input type="checkbox" id="snd" checked>
+        <span data-i18n="sound">sound</span></label>
+      <label class="check"><input type="checkbox" id="mute" checked>
+        <span data-i18n="mute">mute the stock buzz</span></label>
     </div>
 
     <div class="field">
-      <label>Часы</label>
+      <label data-i18n="watch">Watch</label>
       <div class="row wrap">
-        <button id="backup" class="ghost">копия флеша</button>
-        <button id="stock" class="ghost danger">вернуть заводскую</button>
+        <button id="backup" class="ghost" data-i18n="backup">flash backup</button>
+        <button id="stock" class="ghost danger" data-i18n="stock">restore stock</button>
       </div>
     </div>
   </section>
@@ -119,21 +139,23 @@
     <div class="nums"><span id="usage">—</span></div>
   </div>
   <div class="actions">
-    <button id="export" class="ghost">сохранить .gbl</button>
-    <button id="flash" class="primary">прошить таймер</button>
+    <button id="export" class="ghost" data-i18n="save">save .gbl</button>
+    <button id="flash" class="primary" data-i18n="flash">flash the timer</button>
   </div>
 </footer>
 
 <div id="log" class="log hidden">
   <div class="logbox">
-    <div class="loghead"><b id="logtitle">Заливка</b><button id="logclose" class="ghost">закрыть</button></div>
+    <div class="loghead"><b id="logtitle">Flashing</b>
+      <button id="logclose" class="ghost" data-i18n="close">close</button></div>
     <pre id="logtext"></pre>
   </div>
 </div>
 
-<div id="drop" class="drop hidden"><div>отпустите — поставим .zm или .zt</div></div>
+<div id="drop" class="drop hidden"><div data-i18n="drop">drop it — we will add the .zm or .zt</div></div>
 <div id="toast" class="toast hidden"></div>
 
+<script src="/static/i18n.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

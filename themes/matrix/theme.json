@@ -1,0 +1,20 @@
+{
+  "name": "Matrix",
+  "author": "ZealMod",
+  "layout": "list",
+  "reflection": 20,
+  "spacing": 88,
+  "colors": {
+    "bg_top": "#001a08",
+    "bg_bot": "#000000",
+    "fl_top": "#000000",
+    "fl_bot": "#001204",
+    "line": "#0f7a3d",
+    "accent": "#39ff88",
+    "text": "#b9ffcf",
+    "text_dim": "#14532b",
+    "shadow": "#000000"
+  },
+  "format": "zealmod-theme/1",
+  "name_ru": "Матрица"
+}

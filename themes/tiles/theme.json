@@ -1,0 +1,20 @@
+{
+  "name": "Tiles",
+  "author": "ZealMod",
+  "layout": "grid",
+  "reflection": 0,
+  "spacing": 92,
+  "colors": {
+    "bg_top": "#1a1d26",
+    "bg_bot": "#0b0d12",
+    "fl_top": "#0b0d12",
+    "fl_bot": "#141824",
+    "line": "#2a3040",
+    "accent": "#6ea8ff",
+    "text": "#eef1f8",
+    "text_dim": "#4a5266",
+    "shadow": "#000000"
+  },
+  "format": "zealmod-theme/1",
+  "name_ru": "Плитки"
+}

@@ -28,7 +28,7 @@ def _read(z, name, required=True):
         return z.read(name)
     except KeyError:
         if required:
-            raise PackError(f'в архиве нет {name}') from None
+            raise PackError(f'the archive has no {name}') from None
         return b''
 
 
@@ -38,27 +38,29 @@ def read_module(path):
     try:
         z = zipfile.ZipFile(path)
     except zipfile.BadZipFile:
-        raise PackError('это не .zm — файл не открывается как архив') from None
+        raise PackError('not a .zm: the file does not open as an archive') from None
     with z:
         try:
             man = json.loads(_read(z, 'manifest.json').decode('utf-8'))
         except json.JSONDecodeError as e:
-            raise PackError(f'испорченный manifest.json: {e}') from None
+            raise PackError(f'broken manifest.json: {e}') from None
         if man.get('format') != MODULE_FORMAT:
-            raise PackError(f'неизвестный формат: {man.get("format")!r}')
+            raise PackError(f'unknown format: {man.get("format")!r}')
         if not man.get('id'):
-            raise PackError('в manifest.json нет id')
+            raise PackError('manifest.json has no id')
         obj = _read(z, 'code.o')
         cover = _read(z, 'cover.bin', required=False)
         pal = _read(z, 'cover.pal', required=False)
         if cover and len(cover) != COVER_SIZE:
-            raise PackError(f'обложка должна быть {COVER_W}x{COVER_H} байт')
+            raise PackError(f'the cover must be {COVER_W}x{COVER_H} bytes')
         if pal and len(pal) != PAL_SIZE:
-            raise PackError('палитра обложки должна быть 512 байт')
+            raise PackError('the cover palette must be 512 bytes')
         blobs = {}
         for name, src in (man.get('blobs') or {}).items():
             blobs[name] = _read(z, src)
         m = Module(id=man['id'], title=man.get('name') or man['id'], obj=obj,
+                   names={'en': man.get('name') or man['id'],
+                          'ru': man.get('name_ru') or man.get('name') or man['id']},
                    cover=cover, pal=pal, blobs=blobs,
                    entry=man.get('entry', 'zm_main'),
                    exit_btn=tab.button(man.get('exit_button'), 0),
@@ -97,14 +99,14 @@ def check_module(m: Module, exports: dict, abi=tab.ABI):
     out = dict(ok=False, id=m.id, title=m.title, missing=[], imports=[],
                code=0, data=0, bss=0, problems=[])
     if m.abi > abi:
-        out['problems'].append(f'модуль просит ABI {m.abi}, а ядро умеет {abi}')
+        out['problems'].append(f'the module asks for ABI {m.abi}, the core provides {abi}')
     try:
         elf = Elf32(m.obj, m.id)
     except ValueError as e:
         out['problems'].append(str(e))
         return out
     if elf.etype != 1:
-        out['problems'].append('code.o должен быть перемещаемым объектным файлом')
+        out['problems'].append('code.o must be a relocatable object file')
     known = set(exports) | set(m.blobs)
     have = {s.name for s in elf.symbols if s.defined and s.name}
     for s in elf.symbols:
@@ -114,14 +116,14 @@ def check_module(m: Module, exports: dict, abi=tab.ABI):
     out['imports'] = sorted(set(out['imports']))
     out['missing'] = sorted(set(out['missing']))
     if out['missing']:
-        out['problems'].append('ядро не знает: ' + ', '.join(out['missing'][:6]) +
+        out['problems'].append('the core does not export: ' + ', '.join(out['missing'][:6]) +
                                ('…' if len(out['missing']) > 6 else ''))
     for s in elf.sections:
         if not s.alloc or not s.size:
             continue
         r = Linker.region(s)
         if r is None:
-            out['problems'].append(f'секция {s.name} изменяемая — так нельзя')
+            out['problems'].append(f'section {s.name} is writable, which is not allowed')
         elif r == 'text':
             out['code'] += s.size
         elif r == 'rodata':
@@ -129,32 +131,32 @@ def check_module(m: Module, exports: dict, abi=tab.ABI):
         else:
             out['bss'] += s.size
     if m.entry not in have:
-        out['problems'].append(f'нет функции {m.entry}()')
+        out['problems'].append(f'no {m.entry}() function')
     out['data'] += len(m.cover) + len(m.pal) + sum(len(b) for b in m.blobs.values())
     out['ok'] = not out['problems']
     return out
 
 
 # --- темы ------------------------------------------------------------------
-def read_theme(path):
+def read_theme(path, lang='en'):
     """Разобрать .zt: словарь для tab.pack_theme + сырые картинки."""
     try:
         z = zipfile.ZipFile(path)
     except zipfile.BadZipFile:
-        raise PackError('это не .zt — файл не открывается как архив') from None
+        raise PackError('not a .zt: the file does not open as an archive') from None
     with z:
         try:
             src = json.loads(_read(z, 'theme.json').decode('utf-8'))
         except json.JSONDecodeError as e:
-            raise PackError(f'испорченный theme.json: {e}') from None
+            raise PackError(f'broken theme.json: {e}') from None
         if src.get('format') != THEME_FORMAT:
-            raise PackError(f'неизвестный формат темы: {src.get("format")!r}')
+            raise PackError(f'unknown theme format: {src.get("format")!r}')
         wall = _read(z, 'wallpaper.bin', required=False)
         logo = _read(z, 'logo.bin', required=False)
         logo_pal = _read(z, 'logo.pal', required=False)
     if wall and len(wall) != 240 * 240 * 2:
-        raise PackError('обои должны быть 240x240 (115200 байт)')
-    t = theme_from_json(src)
+        raise PackError('the wallpaper must be 240x240 (115200 bytes)')
+    t = theme_from_json(src, lang)
     return t, dict(wallpaper=wall, logo=logo, logo_pal=logo_pal,
                    logo_w=int(src.get('logo_w', 0)), logo_h=int(src.get('logo_h', 0))), src
 
@@ -162,11 +164,11 @@ def read_theme(path):
 LAYOUTS = {'coverflow': 0, 'обложки': 0, 'grid': 1, 'сетка': 1, 'list': 2, 'список': 2}
 
 
-def theme_from_json(src):
+def theme_from_json(src, lang='en'):
     c = src.get('colors') or {}
-    d = tab.DEFAULT_THEME
-    t = dict(d)
-    t['name'] = str(src.get('name', 'ZealMod'))[:31]
+    t = dict(tab.DEFAULT_THEME)
+    name = src.get(f'name_{lang}') or src.get('name') or 'ZealMod'
+    t['name'] = str(name)[:31]
     lay = src.get('layout', 0)
     t['layout'] = LAYOUTS.get(str(lay).lower(), lay if isinstance(lay, int) else 0)
     t['reflection'] = int(src.get('reflection', 42))

@@ -1,20 +1,23 @@
-# Темы ZealMod
+# ZealMod themes
 
-Тема — файл `.zt`: цвета, вид меню и, если хочется, свои обои и заставка.
-Перетащите его в окно Studio, и он появится в списке тем.
+[Русская версия](ru/theme.md)
+
+A theme is a `.zt` file: colours, menu style and, if you like, your own
+wallpaper and splash logo. Drag it onto the Studio window and it appears in the
+theme list.
 
 <p align="center">
   <img src="img/menu.png" width="180" alt="ZealMod">
-  <img src="img/mint.png" width="180" alt="Мята">
-  <img src="img/grid.png" width="180" alt="Плитки">
+  <img src="img/mint.png" width="180" alt="Mint">
+  <img src="img/grid.png" width="180" alt="Tiles">
 </p>
 
-## Сделать свою
+## Making one
 
 ```sh
-python3 studio/zealmod.py new theme моя_тема
-# правим моя_тема/theme.json
-python3 studio/zealmod.py theme моя_тема        # получаем моя_тема.zt
+python3 studio/zealmod.py new theme mytheme
+# edit mytheme/theme.json
+python3 studio/zealmod.py theme mytheme        # produces mytheme.zt
 ```
 
 `theme.json`:
@@ -22,62 +25,76 @@ python3 studio/zealmod.py theme моя_тема        # получаем моя
 ```json
 {
   "format": "zealmod-theme/1",
-  "name": "Моя тема",
-  "author": "я",
-  "layout": "coverflow",        coverflow | grid | list
-  "reflection": 42,             высота отражения, % от обложки (0 — выключить)
-  "spacing": 92,                насколько разнесены обложки
-  "hide_title": false,          подпись под обложкой
-  "hide_dots": false,           точки-страницы внизу
+  "name": "My theme",
+  "name_ru": "Моя тема",
+  "author": "me",
+  "layout": "coverflow",
+  "reflection": 42,
+  "spacing": 92,
+  "hide_title": false,
+  "hide_dots": false,
   "colors": {
-    "bg_top":   "#101220",      небо: верх
-    "bg_bot":   "#030306",      небо: низ, у самого горизонта
-    "fl_top":   "#030306",      пол: у горизонта
-    "fl_bot":   "#0e0f18",      пол: у нижнего края
-    "line":     "#2c3042",      сам горизонт
-    "accent":   "#e6e6f0",      выделение: точка страницы, рамка, ползунок
+    "bg_top":   "#101220",
+    "bg_bot":   "#030306",
+    "fl_top":   "#030306",
+    "fl_bot":   "#0e0f18",
+    "line":     "#2c3042",
+    "accent":   "#e6e6f0",
     "text":     "#ffffff",
     "text_dim": "#3c3e4a",
-    "shadow":   "#000000"       подложка под подписью
+    "shadow":   "#000000"
   }
 }
 ```
 
-Цвета можно писать как `#rrggbb`, `#rgb` или `[r, g, b]`. Экран у таймера
-16-битный (RGB565), так что оттенки округляются — тонкие градиенты полосят,
-лучше брать заметно разные цвета.
-
-## Три вида меню
-
-| `layout` | что это |
+| key | what it does |
 | --- | --- |
-| `coverflow` | обложки в перспективе с отражениями, листаются ◀ ▶ |
-| `grid` | сетка 3×3 с прокруткой, ходить всеми четырьмя кнопками |
-| `list` | список с мелкими обложками |
+| `name_ru` | the caption when the firmware language is Russian |
+| `layout` | `coverflow`, `grid` or `list` |
+| `reflection` | reflection height, % of the cover (0 turns it off) |
+| `spacing` | how far apart the covers stand |
+| `hide_title`, `hide_dots` | drop the caption / the page dots |
+| `bg_top`, `bg_bot` | the sky: top, and down at the horizon |
+| `fl_top`, `fl_bot` | the floor: at the horizon, and at the bottom edge |
+| `line` | the horizon itself |
+| `accent` | selection: page dot, frame, slider |
+| `text`, `text_dim`, `shadow` | captions and the shadow under them |
 
-В сетке и списке запуск — кнопкой ▶ (или повторным нажатием на выбранном),
-выход в таймер — удержание ◀.
+Colours accept `#rrggbb`, `#rgb` or `[r, g, b]`. The screen is 16-bit
+(RGB565), so shades get rounded — subtle gradients band, and clearly different
+colours look better.
 
-## Обои и заставка
+## Three menu styles
 
-Положите рядом с `theme.json`:
+| `layout` | what it is |
+| --- | --- |
+| `coverflow` | covers in perspective with reflections |
+| `grid` | a 3×3 grid that scrolls |
+| `list` | a list with small covers |
 
-* `wallpaper.png` — 240×240, станет фоном меню вместо градиента;
-* `logo.png` — 128×128, покажется на заставке вместо знака ZealMod.
+The controls are the same in all three: **◀ ▶** move, **▲** launches,
+**▼** goes back to the timer.
+
+## Wallpaper and splash
+
+Put these next to `theme.json`:
+
+* `wallpaper.png` — 240×240, becomes the menu background instead of the gradient;
+* `logo.png` — 128×128, shows on the splash screen instead of the ZealMod mark.
 
 <p align="center">
-  <img src="img/splash-logo.png" width="180" alt="своя заставка">
-  <img src="img/space.png" width="180" alt="свои обои">
+  <img src="img/splash-logo.png" width="180" alt="custom splash">
+  <img src="img/space.png" width="180" alt="custom wallpaper">
 </p>
 
-`zealmod theme` сам переведёт их в формат экрана. Обои занимают 115 КБ в
-образе — это заметная доля свободного места, так что с ними влезет меньше
-программ; Studio покажет остаток внизу окна.
+`zealmod theme` converts them to the screen format for you. A wallpaper takes
+115 KB in the image — a noticeable slice of the free space, so fewer programs
+fit alongside it; Studio shows what is left at the bottom of the window.
 
-## Откуда берутся встроенные темы
+## Where the built-in themes come from
 
-Из каталога `themes/` — там лежат `mint`, `sunset`, `matrix`, `tiles` и `space`
-(последняя — с обоями и своим логотипом, как пример). Это
-обычные каталоги с `theme.json`; `zealmod mods` пакует их в `dist/themes/*.zt`
-вместе со всем остальным комплектом. Скопируйте любую и правьте — так проще
-всего начать.
+From the `themes/` directory — `mint`, `sunset`, `matrix`, `tiles` and `space`
+(the last one has a wallpaper and its own logo, as an example). They are plain
+directories with a `theme.json`; `zealmod mods` packs them into
+`dist/themes/*.zt` along with the rest of the kit. Copy one and edit it — that
+is the easiest way to start.

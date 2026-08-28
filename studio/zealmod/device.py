@@ -77,7 +77,7 @@ def _esptool(args, port=None, baud=921600, on_line=None):
 def info(port=None):
     """Опросить часы: чип, MAC, размер флеша."""
     if not esptool_ok():
-        raise DeviceError('нет esptool: pip install esptool')
+        raise DeviceError('esptool is missing: pip install esptool')
     txt = _esptool(['flash_id'], port)
     out = {}
     for line in txt.splitlines():
@@ -94,10 +94,10 @@ def info(port=None):
 def flash(image_path, port=None, on_line=None, set_boot=False):
     """Записать образ в раздел ota_0."""
     if not esptool_ok():
-        raise DeviceError('нет esptool: pip install esptool')
+        raise DeviceError('esptool is missing: pip install esptool')
     size = os.path.getsize(image_path)
     if size > OTA0_SIZE:
-        raise DeviceError(f'образ {size} Б больше раздела ota_0 ({OTA0_SIZE} Б)')
+        raise DeviceError(f'image of {size} B is larger than the ota_0 partition ({OTA0_SIZE} B)')
     args = ['write_flash', hex(OTA0), str(image_path)]
     if set_boot:
         import tempfile
@@ -110,7 +110,7 @@ def flash(image_path, port=None, on_line=None, set_boot=False):
 def backup(out_path, port=None, on_line=None):
     """Полный дамп флеша — прежде чем что-то менять."""
     if not esptool_ok():
-        raise DeviceError('нет esptool: pip install esptool')
+        raise DeviceError('esptool is missing: pip install esptool')
     return _esptool(['read_flash', '0', hex(FLASH_SIZE), str(out_path)], port,
                     on_line=on_line)
 

@@ -85,7 +85,7 @@ def _put_s(buf, off, lo):
 
 def _put_b(buf, off, imm):
     if imm & 1 or not -(1 << 12) <= imm < (1 << 12):
-        raise RelocError(f'branch вне досягаемости: {imm:#x}')
+        raise RelocError(f'branch out of range: {imm:#x}')
     ins = _u32(buf, off) & ~0xFE000F80 & 0xFFFFFFFF
     ins |= ((imm >> 12) & 1) << 31 | ((imm >> 5) & 0x3F) << 25
     ins |= ((imm >> 1) & 0xF) << 8 | ((imm >> 11) & 1) << 7
@@ -94,7 +94,7 @@ def _put_b(buf, off, imm):
 
 def _put_j(buf, off, imm):
     if imm & 1 or not -(1 << 20) <= imm < (1 << 20):
-        raise RelocError(f'jal вне досягаемости: {imm:#x}')
+        raise RelocError(f'jal out of range: {imm:#x}')
     ins = _u32(buf, off) & 0x00000FFF
     ins |= ((imm >> 20) & 1) << 31 | ((imm >> 1) & 0x3FF) << 21
     ins |= ((imm >> 11) & 1) << 20 | ((imm >> 12) & 0xFF) << 12
@@ -103,7 +103,7 @@ def _put_j(buf, off, imm):
 
 def _put_cj(buf, off, imm):
     if imm & 1 or not -(1 << 11) <= imm < (1 << 11):
-        raise RelocError(f'c.j вне досягаемости: {imm:#x}')
+        raise RelocError(f'c.j out of range: {imm:#x}')
     ins = _u16(buf, off) & 0xE003
     for bit, pos in ((11, 12), (4, 11), (9, 10), (8, 9), (10, 8),
                      (6, 7), (7, 6), (3, 5), (2, 4), (1, 3), (5, 2)):
@@ -113,7 +113,7 @@ def _put_cj(buf, off, imm):
 
 def _put_cb(buf, off, imm):
     if imm & 1 or not -(1 << 8) <= imm < (1 << 8):
-        raise RelocError(f'c.branch вне досягаемости: {imm:#x}')
+        raise RelocError(f'c.branch out of range: {imm:#x}')
     ins = _u16(buf, off) & 0xE383
     for bit, pos in ((8, 12), (4, 11), (3, 10), (7, 6), (6, 5),
                      (2, 4), (1, 3), (5, 2)):
@@ -159,17 +159,17 @@ def apply(buf: bytearray, sec_addr: int, relocs, resolve, pcrel_hi=None, where='
             elif t in (R_RISCV_CALL, R_RISCV_CALL_PLT):
                 d = s - p
                 if not -(1 << 31) <= d < (1 << 31):
-                    raise RelocError('call слишком далеко')
+                    raise RelocError('call target too far')
                 _put_u(buf, off, _hi20(d))
                 _put_i(buf, off + 4, _lo12(d))
             elif t in (R_RISCV_PCREL_HI20, R_RISCV_GOT_HI20):
                 if t == R_RISCV_GOT_HI20:
-                    raise RelocError('нужен GOT — модуль собран как PIC, пересоберите SDK-ключами')
+                    raise RelocError('needs a GOT: the module was built as PIC, rebuild it with the SDK flags')
                 _put_u(buf, off, _hi20(s - p))
             elif t in (R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S):
                 base = pcrel_hi.get(s)
                 if base is None:
-                    raise RelocError(f'не нашёл парный auipc для {s:#x}')
+                    raise RelocError(f'no matching auipc for {s:#x}')
                 d = base - s
                 (_put_i if t == R_RISCV_PCREL_LO12_I else _put_s)(buf, off, _lo12(d))
             elif t == R_RISCV_BRANCH:
@@ -196,8 +196,8 @@ def apply(buf: bytearray, sec_addr: int, relocs, resolve, pcrel_hi=None, where='
                 v = (s & 0x3F) if t == R_RISCV_SET6 else ((cur - s) & 0x3F)
                 buf[off] = (cur & 0xC0) | v
             elif t == R_RISCV_ALIGN:
-                raise RelocError('R_RISCV_ALIGN: модуль собран с relax, нужен -mno-relax')
+                raise RelocError('R_RISCV_ALIGN: the module was built with relaxation, use -mno-relax')
             else:
-                raise RelocError(f'неизвестная релокация {NAMES.get(t, t)}')
+                raise RelocError(f'unsupported relocation {NAMES.get(t, t)}')
         except RelocError as e:
             raise RelocError(f'{where}+{off:#x} ({NAMES.get(t, t)}): {e}') from None

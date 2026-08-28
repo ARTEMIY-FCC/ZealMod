@@ -1,0 +1,21 @@
+{
+  "format": "zealmod-theme/1",
+  "name": "Space",
+  "author": "ZealMod",
+  "layout": "coverflow",
+  "reflection": 30,
+  "spacing": 92,
+  "wallpaper": true,
+  "colors": {
+    "bg_top": "#0a0820",
+    "bg_bot": "#050410",
+    "fl_top": "#050410",
+    "fl_bot": "#141026",
+    "line": "#3a3a6a",
+    "accent": "#8fb6ff",
+    "text": "#eef2ff",
+    "text_dim": "#3a3f5c",
+    "shadow": "#000000"
+  },
+  "name_ru": "Космос"
+}

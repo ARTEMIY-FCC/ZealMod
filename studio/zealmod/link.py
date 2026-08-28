@@ -30,8 +30,8 @@ class Arena:
         self.at = (self.at + align - 1) & ~(align - 1)
         at = self.at
         if at + size > self.limit:
-            raise LinkError(f'{self.name}: не хватает места ({size} Б, свободно '
-                            f'{max(0, self.limit - at)} Б)')
+            raise LinkError(f'{self.name}: out of space ({size} B needed, '
+                            f'{max(0, self.limit - at)} B left)')
         self.at += size
         return at
 
@@ -87,9 +87,8 @@ class Linker:
         for s in secs:
             r = self.region(s)
             if r is None:
-                raise LinkError(f'{name}: секция {s.name} ({s.size} Б) изменяемая — '
-                                f'инициализированных данных быть не должно, '
-                                f'их некому копировать в ОЗУ')
+                raise LinkError(f'{name}: section {s.name} ({s.size} B) is writable — initialised '
+                                f'mutable data is not supported, nothing copies it to RAM')
             placed[s.idx] = self.arenas[r].take(s.size, max(s.align, 4))
             out.places.append((s.name, placed[s.idx], s.size))
             if r == TEXT:
@@ -111,7 +110,7 @@ class Linker:
             if sym.shndx == SHN_ABS or not sym.defined:
                 continue
             if sym.shndx == SHN_COMMON:
-                raise LinkError(f'{name}: символ {sym.name} в COMMON — нужен -fno-common')
+                raise LinkError(f'{name}: symbol {sym.name} is COMMON — build with -fno-common')
             if sym.shndx >= len(elf.sections):
                 continue
             base = placed.get(sym.shndx)
@@ -133,12 +132,12 @@ class Linker:
                 if sym.type == STT_SECTION:
                     a = placed.get(sym.shndx)
                     if a is None:
-                        raise LinkError(f'{name}: ссылка на невыгружаемую секцию '
+                        raise LinkError(f'{name}: reference to a non-allocated section '
                                         f'{elf.sections[sym.shndx].name}')
                     return a
                 a = placed.get(sym.shndx)
                 if a is None:
-                    raise LinkError(f'{name}: символ {sym.name} в невыгружаемой секции')
+                    raise LinkError(f'{name}: symbol {sym.name} lives in a non-allocated section')
                 return a + sym.value
             # внешний
             nm = sym.name
@@ -165,7 +164,7 @@ class Linker:
             bodies.append((placed[s.idx], bytes(buf)))
 
         if missing:
-            raise LinkError(f'{name}: ядро не знает таких имён: ' + ', '.join(sorted(missing)))
+            raise LinkError(f'{name}: the core does not export: ' + ', '.join(sorted(missing)))
         out.chunks = bodies
         return out
 

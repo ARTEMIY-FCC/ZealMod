@@ -39,6 +39,7 @@ class Module:
     cover: bytes = b''
     pal: bytes = b''
     blobs: dict = field(default_factory=dict)
+    names: dict = field(default_factory=dict)     # подпись по языкам
     entry: str = 'zm_main'
     exit_btn: int = 0
     exit_hold: int = 14
@@ -70,7 +71,7 @@ class Region:
     def write(self, addr, data):
         o = addr - self.base
         if o < 0:
-            raise BuildError(f'запись до начала области: {addr:#x} < {self.base:#x}')
+            raise BuildError(f'write below the region start: {addr:#x} < {self.base:#x}')
         if o + len(data) > len(self.buf):
             self.buf += b'\0' * (o + len(data) - len(self.buf))
         self.buf[o:o + len(data)] = data
@@ -101,6 +102,7 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
     profile = profile or {}
     theme = dict(tab.DEFAULT_THEME, **(theme or {}))
     cfg = dict(cfg or {})
+    lang = str(cfg.get('lang', 'en')).lower()     # на нём подписи в меню
     img = AppImage(base)
     core = Elf32(core_elf, 'core.elf')
     rep = Report()
@@ -109,36 +111,36 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
     sec = {s.name: s for s in core.sections}
     for need in ('.ptext', '.ptext2', '.prodata'):
         if need not in sec:
-            raise BuildError(f'в ядре нет секции {need}')
+            raise BuildError(f'the core has no {need} section')
     ptext, ptext2, prodata = sec['.ptext'], sec['.ptext2'], sec['.prodata']
-    for s, want, what in ((ptext, L['text'], 'трамплины'),
-                          (ptext2, L['text2'], 'код ядра'),
-                          (prodata, L['data'], 'данные ядра')):
+    for s, want, what in ((ptext, L['text'], 'trampolines'),
+                          (ptext2, L['text2'], 'core code'),
+                          (prodata, L['data'], 'core data')):
         if s.size and s.addr != want:
-            raise BuildError(f'{what}: ядро собрано на {s.addr:#x}, а образу нужно '
-                             f'{want:#x} — ядро и прошивка не от одной пары')
+            raise BuildError(f'{what}: the core is linked at {s.addr:#x}, the image needs '
+                             f'{want:#x} — core and stock firmware do not match')
     if len(ptext.data) > L['text_len']:
-        raise BuildError('трамплины не влезают в хвост стоковой IROM')
+        raise BuildError('trampolines do not fit the tail of the stock IROM')
     if len(ptext2.data) > MMU_PAGE:
-        raise BuildError('код ядра больше страницы MMU')
+        raise BuildError('core code is larger than one MMU page')
 
     exports = {s.name: s.value for s in core.symbols
                if s.defined and s.global_ and s.name}
     for must in ('zm_tab', 'zg_hook_boot'):
         if must not in exports:
-            raise BuildError(f'в ядре нет символа {must}')
+            raise BuildError(f'the core has no symbol {must}')
 
     # --- арены -------------------------------------------------------------
     max_pages = int(profile.get('max_code_pages', 8))
     free_now = img.free_bytes()
-    code = Arena('код модулей', (L['text2'] + len(ptext2.data) + 3) & ~3,
+    code = Arena('module code', (L['text2'] + len(ptext2.data) + 3) & ~3,
                  L['text2'] + max_pages * MMU_PAGE)
-    data = Arena('данные модулей', (prodata.addr + prodata.size + 15) & ~15,
+    data = Arena('module data', (prodata.addr + prodata.size + 15) & ~15,
                  prodata.addr + prodata.size + max(0, free_now))
     persist_end = exports.get('__persist_end__')
     if persist_end is None:
-        raise BuildError('в ядре нет символа __persist_end__')
-    bss = Arena('RTC-память', (persist_end + 7) & ~7, RTC_END)
+        raise BuildError('the core has no __persist_end__ symbol')
+    bss = Arena('RTC memory', (persist_end + 7) & ~7, RTC_END)
     linker = Linker(exports, code, data, bss)
 
     # --- картинки темы: обои и логотип заставки ----------------------------
@@ -165,13 +167,13 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
     mods = []
     for m in modules:
         if m.abi > tab.ABI:
-            raise BuildError(f'{m.id}: модуль просит ABI {m.abi}, ядро умеет {tab.ABI}')
+            raise BuildError(f'{m.id}: the module asks for ABI {m.abi}, the core provides {tab.ABI}')
         extern = {}
         for name, blob in sorted(m.blobs.items()):
             at = data.take(len(blob), 16)
             rod.write(at, blob)
             extern[name] = at
-        title = m.title.encode('utf-8') + b'\0'
+        title = (m.names.get(lang) or m.title).encode('utf-8') + b'\0'
         t_at = data.take(len(title), 4)
         rod.write(t_at, title)
         c_at = p_at = 0
@@ -185,7 +187,7 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
         except (LinkError, ValueError) as e:
             raise BuildError(f'{m.id}: {e}') from None
         if m.entry not in lk.symbols:
-            raise BuildError(f'{m.id}: в модуле нет функции {m.entry}()')
+            raise BuildError(f'{m.id}: the module has no {m.entry}() function')
         for at, blob in lk.chunks:
             if at >= L['text2']:
                 chunks.append((at, blob))
@@ -194,7 +196,7 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
         mods.append(dict(run=lk.symbols[m.entry], title=t_at, cover=c_at, pal=p_at,
                          id=tab.mod_id(m.id), flags=0, exit_btn=m.exit_btn,
                          exit_hold=m.exit_hold))
-        rep.modules.append(dict(id=m.id, title=m.title, code=lk.text_bytes,
+        rep.modules.append(dict(id=m.id, title=m.names.get(lang) or m.title, code=lk.text_bytes,
                                 data=lk.rodata_bytes + len(title) + len(m.cover) +
                                 len(m.pal) + sum(len(b) for b in m.blobs.values()),
                                 bss=lk.bss_bytes, imports=len(lk.imports)))
@@ -203,13 +205,13 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
     code_used = code.at - L['text2']
     pages = max(1, (code_used + MMU_PAGE - 1) // MMU_PAGE)
     if pages > max_pages:
-        raise BuildError(f'кода модулей больше, чем {max_pages} страниц MMU')
+        raise BuildError(f'module code needs more than {max_pages} MMU pages')
 
     # --- собираем сегмент данных ------------------------------------------
     dva, dd = img.segs[img.drom]
     pad = L['pt2_lma'] - (dva + len(dd))
     if pad < 0:
-        raise BuildError('сегмент данных уже перерос место под код')
+        raise BuildError('the data segment already overruns the code area')
     dd += b'\0' * pad
     page0_at = len(dd)
     dd += b'\0' * MMU_PAGE
@@ -241,7 +243,7 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
     mmu = []
     at = L['flash'](dva + extra_at)          # смещение во флеше -> номер страницы
     if at % MMU_PAGE:
-        raise BuildError('страницы кода встали не на границу страницы флеша')
+        raise BuildError('code pages did not land on a flash page boundary')
     first_page = at // MMU_PAGE
     for k in range(1, pages):
         mmu.append((L['entry'] + k, first_page + (k - 1)))
@@ -250,14 +252,14 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
                          build=build_str or time.strftime('%Y-%m-%d'))
     tab_off = rod_at + (exports['zm_tab'] - prodata.addr)   # адрес -> место в сегменте
     if not (rod_at <= tab_off < len(dd)):
-        raise BuildError('таблица zm_tab оказалась вне сегмента данных')
+        raise BuildError('the zm_tab table ended up outside the data segment')
     dd[tab_off:tab_off + len(table)] = table
 
     # --- трамплины и хуки --------------------------------------------------
     _, idd = img.segs[img.irom]
     idd += b'\0' * ((-len(idd)) % 16)
     if img.segs[img.irom][0] + len(idd) != ptext.addr:
-        raise BuildError('трамплины ядра не встают вплотную к стоковому коду')
+        raise BuildError('core trampolines do not sit right after the stock code')
     idd += ptext.data
     idd += b'\0' * ((-len(idd)) % 4)
 
@@ -265,12 +267,12 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
         at = int(str(h['addr']), 0)
         sym = h['symbol']
         if sym not in exports:
-            raise BuildError(f'в ядре нет трамплина {sym}')
+            raise BuildError(f'the core has no trampoline {sym}')
         if check_base and h.get('expect'):
             was = img.read(at, 4).hex()
             if was != h['expect'].replace(' ', '').lower():
-                raise BuildError(f'по адресу {at:#x} в прошивке лежит {was}, а мод ждал '
-                                 f'{h["expect"]} — прошивка часов другой версии')
+                raise BuildError(f'at {at:#x} the firmware holds {was}, the mod expected '
+                                 f'{h["expect"]} — this is a different firmware version')
         img.write(at, jal(at, exports[sym]))
 
     image = img.build()
@@ -281,5 +283,5 @@ def build(base: bytes, core_elf: bytes, modules, theme=None, cfg=None,
     rep.bss = bss.at - bss.base
     rep.pages = pages
     if rep.bss and bss.at > RTC_END:
-        raise BuildError('модулям не хватило RTC-памяти')
+        raise BuildError('not enough RTC memory for the modules')
     return image, rep
