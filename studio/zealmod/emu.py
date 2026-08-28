@@ -84,6 +84,63 @@ def _apps_c(specs, out: Path):
     out.write_text('\n'.join(lines) + '\n', 'utf-8')
 
 
+def _incbin(path: Path, base: Path):
+    """Из сгенерированного .S достаём пары «имя — файл с данными».
+
+    Настоящий ассемблер модуля собран под RISC-V и компьютеру не нужен, а вот
+    .incbin в нём — это данные игры, без них хостовая сборка не слинкуется.
+    """
+    items, pending = [], []
+    for line in path.read_text('utf-8').splitlines():
+        t = line.strip()
+        if t.startswith(('.global', '.globl')):
+            name = t.split(None, 1)[1].strip()
+            if not name.startswith('_'):
+                pending.append(name)
+        elif t.startswith('.incbin') and pending and '"' in t:
+            f = base / t.split('"')[1]
+            items.append((pending[-1], f))
+            pending = []
+    return items
+
+
+def _blobs_s(specs, build: Path):
+    """Данные модулей одним ассемблерным файлом: .incbin вместо гигабайта текста.
+
+    На часах адреса блобов подставляет линковщик Studio, здесь их достаточно
+    просто вкомпилировать.  Берём и `blobs` из манифеста, и .incbin из .S.
+    """
+    items = []
+    for sp in specs:
+        base = Path(sp['_dir'])
+        for name, rel in (sp.get('blobs') or {}).items():
+            p = base / rel
+            if not p.is_file():
+                raise MkError(f'missing blob {p}')
+            items.append((name, p))
+        for src in sp['sources']:
+            p = base / src
+            if p.suffix == '.S' and p.is_file():
+                items += _incbin(p, base)
+    if not items:
+        return None
+    macho = sys.platform == 'darwin'
+    out = ['/* сгенерировано zealmod emu */']
+    for name, path in items:
+        if not path.is_file():
+            raise MkError(f'missing blob {path}')
+        sym = ('_' if macho else '') + name
+        out.append('    .section __TEXT,__const' if macho
+                   else f'    .section .rodata.{name},"a",@progbits')
+        out.append('    .p2align 2')
+        out.append(f'    .globl {sym}')
+        out.append(f'{sym}:')
+        out.append(f'    .incbin "{path.resolve()}"')
+    f = build / 'emu_blobs.s'
+    f.write_text('\n'.join(out) + '\n', 'utf-8')
+    return f
+
+
 def _specs(bundle, target):
     """Что показывать в эмуляторе: свой каталог или весь встроенный список."""
     out = []
@@ -123,6 +180,9 @@ def emulate(bundle, target=None, extra=()):
 
     srcs = [str(fw / s) for s in CORE]
     srcs += [str(build / 'emu_apps.c'), str(build / 'emu_covers.c')]
+    blobs = _blobs_s(specs, build)
+    if blobs:
+        srcs.append(str(blobs))
     for sp in specs:
         for s in sp['sources']:
             p = Path(sp['_dir']) / s
@@ -131,6 +191,14 @@ def emulate(bundle, target=None, extra=()):
             if p.suffix == '.S':
                 continue                 # ассемблер под RISC-V на компьютере не нужен
             srcs.append(str(p))
+    seen, uniq = set(), []                # один общий файл на два модуля (mazegen.c) —
+    for s_ in srcs:                       # на часах это разные сборки, здесь одна линковка
+        key = str(Path(s_).resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(s_)
+    srcs = uniq
     inc = ['-I' + str(fw / 'src'), '-I' + str(fw / 'build'), '-I' + str(bundle.sdk)]
     for sp in specs:
         inc += ['-I' + str(Path(sp['_dir']) / i) for i in sp.get('include', [])]
