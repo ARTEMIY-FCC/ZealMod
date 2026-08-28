@@ -76,7 +76,10 @@ To write your own:
 ```sh
 python3 studio/zealmod.py new app mygame   # a C scaffold
 python3 studio/zealmod.py emu mygame       # run it on your computer
-python3 studio/zealmod.py pack mygame      # build mygame.zm
+
+cd mygame
+python3 ../studio/zealmod.py pack .        # build mygame.zm
+cd ..
 ```
 
 That part does need a compiler (`riscv64-elf-gcc`) and SDL2 for the emulator —
@@ -84,12 +87,25 @@ but only for the author. Whoever installs the program needs none of it: a `.zm`
 carries ready machine code, and Studio places it in the image and links it
 against the core itself.
 
+> **Note:** `pack` currently only builds correctly when run from *inside* the
+> module's own folder with `.` as the argument, as above. Calling it with a
+> path from elsewhere (e.g. `zealmod pack mygame` from the repo root) fails
+> with a compiler error like `mygame/src/main.c: No such file or directory` —
+> a known bug where the tool joins that path onto itself. `emu`, `check`, and
+> the rest of the commands don't have this problem and accept any path.
+
 More: [docs/module.md](docs/module.md) — how a program is built,
 [docs/api.md](docs/api.md) — the full API reference,
 [docs/theme.md](docs/theme.md) — how a theme is built,
 [docs/architecture.md](docs/architecture.md) — how all of this works inside.
 
 ## Command line
+
+Below, `zealmod` stands for however you invoke it — normally
+`python3 studio/zealmod.py`, since these tools aren't installed as a standalone
+command by default (`zealmod devices` on its own will just give you
+`command not found`). If you want the bare `zealmod` command to work, install
+it yourself, e.g. `pip install -e studio/`.
 
 ```
 zealmod devices          what is connected over USB
@@ -117,6 +133,25 @@ examples/    a scaffold for your own program
 dist/        the built kit: core, modules, themes, stock image
 docs/        how it is put together
 ```
+
+## Troubleshooting
+
+* **`zsh: command not found: zealmod`** — see the note at the top of
+  [Command line](#command-line): call it as `python3 studio/zealmod.py ...`
+  unless you've installed the `zealmod` command yourself.
+* **`pack` fails with `.../src/main.c: No such file or directory`** — see the
+  note under [Your own programs and themes](#your-own-programs-and-themes):
+  `cd` into the module's folder and run `pack .` from there, rather than
+  pointing `pack` at the folder from somewhere else.
+* **`python3 studio/zealmod.py ...` can't find the script itself** (`can't
+  open file '.../studio/zealmod.py'`) — the path to `zealmod.py` is relative
+  to your current directory, not to the repo. If you're inside a module
+  folder like `mygame/`, that's `../studio/zealmod.py`, not `studio/zealmod.py`.
+* **`emu` says `the emulator needs the firmware sources (the work/ directory)`**
+  — this means `work/host/host_sdl.c` isn't where it should be relative to
+  `studio/zealmod.py`. It ships in the repo, so this usually means the clone
+  is incomplete (a partial download, a `git clone --depth`/sparse checkout, or
+  files removed by hand) — clone the repository fresh and try again.
 
 ## Careful
 
