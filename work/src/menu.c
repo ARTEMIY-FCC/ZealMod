@@ -1,8 +1,11 @@
-/* menu.c — экран выбора модуля.  Три раскладки на выбор темы:
+/* menu.c — экран выбора модуля.  Четыре раскладки на выбор темы:
  *   0 — обложки в перспективе (cover flow): каждая рисуется столбцами, по
  *       столбцу считается перспективно-верная координата текстуры;
  *   1 — сетка 3x3 с прокруткой;
- *   2 — список с мелкими обложками.
+ *   2 — список с мелкими обложками;
+ *   3 — карточки: тот же список, но текущий пункт разворачивается в карточку,
+ *       а высоты строк считаются из того же pos, что ведёт cover flow, — от
+ *       этого разворот и прокрутка идут одним плавным движением.
  * Цвета и раскладку задаёт тема (zm_theme), список модулей — таблица ZealMod.
  */
 #include "plat.h"
@@ -161,6 +164,97 @@ static void draw_list(const band *b, int n, int sel, int scroll)
     }
 }
 
+/* --- раскладка «карточки» ------------------------------------------------ */
+#define CARD_X  12
+#define CARD_W  (SCR_W - CARD_X - 20)   /* справа остаётся полоса прокрутки */
+#define CARD_R  10
+#define ROW_H   36
+#define SEL_H   68
+#define CARD_G  6
+
+/* Насколько пункт «текущий»: 256 — развёрнут, 0 — обычная строка.  Считается
+ * из pos, а не из sel, поэтому во время перехода соседи меняются местами
+ * плавно, а сумма высот остаётся прежней — список не дёргается. */
+static int card_q(int i, int pos)
+{
+    int d = iabs((i << 16) - pos);
+    return d >= 65536 ? 0 : (65536 - d) >> 8;
+}
+
+static int card_h(int i, int pos)
+{
+    return ROW_H + (SEL_H - ROW_H) * card_q(i, pos) / 256;
+}
+
+static void tri(const band *b, int x, int y, int s, px c)     /* значок «пуск» */
+{
+    for (int k = 0; k < s; k++) gfx_fill(b, x - k, y + k, 2 * k + 1, 1, c);
+}
+
+static void draw_card(const band *b, int y, int h, const zm_item_t *it, int q)
+{
+    if (y >= b->y1 || y + h <= b->y0) return;
+    if (q > 8)                                  /* мягкий ореол под текущей */
+        gfx_round(b, CARD_X - 3, y - 3, CARD_W + 6, h + 6, CARD_R + 3,
+                  px_scale(th->accent, q / 4));
+    gfx_round(b, CARD_X, y, CARD_W, h, CARD_R,
+              px_mix(px_mix(th->bg_bot, BLACK, 190 - 60 * q / 256),
+                     th->accent, 8 + q / 7));
+    gfx_fill(b, CARD_X + 5, y + h / 4, 2, h / 2,
+             px_scale(th->accent, 40 + 216 * q / 256));       /* полоска слева */
+
+    int s = 26 + 20 * q / 256, cx = CARD_X + 15, cy = y + (h - s) / 2;
+    if (it->cover)
+        gfx_blit8_scaled(b, cx, cy, s, s, it->cover, COVER_W, COVER_H, it->pal, -1,
+                         170 + 86 * q / 256);
+    else
+        gfx_round(b, cx, cy, s, s, 4, th->text_dim);
+    gfx_frame(b, cx - 1, cy - 1, s + 2, s + 2, 1,
+              px_scale(th->accent, 60 + 150 * q / 256));
+
+    int tx = cx + s + 12, room = SCR_W - 26 - tx;
+    const font_t *f = q > 140 ? &font_l : &font_m;
+    if (gfx_text_w(f, it->title) > room) f = &font_m;         /* длинное имя — мельче */
+    if (gfx_text_w(f, it->title) > room) f = &font_s;
+    gfx_text(b, tx, y + h / 2 + (f == &font_l ? 7 : 5), f,
+             px_mix(th->text_dim, th->text, 120 + 136 * q / 256), it->title);
+    if (q > 140) tri(b, SCR_W - 32, y + h / 2 - 4, 5, px_scale(th->accent, q));
+}
+
+static void draw_cards(const band *b, int n, int sel, int pos)
+{
+    background(b);
+    int total = -CARD_G;
+    for (int i = 0; i < n; i++) total += card_h(i, pos) + CARD_G;
+
+    /* текущая карточка держится в середине экрана: положение её центра
+     * интерполируем между двумя соседями по той же дробной части pos */
+    int k = pos >> 16, f = pos & 0xFFFF, before = 0;
+    for (int i = 0; i < k && i < n; i++) before += card_h(i, pos) + CARD_G;
+    int hk = k < n ? card_h(k, pos) : 0;
+    int c0 = before + hk / 2;
+    int c1 = before + hk + CARD_G + (k + 1 < n ? card_h(k + 1, pos) : hk) / 2;
+    int scroll = c0 + (c1 - c0) * f / 65536 - SCR_H / 2;
+    scroll = total <= SCR_H ? -(SCR_H - total) / 2 : iclamp(scroll, 0, total - SCR_H);
+
+    int y = -scroll;
+    for (int i = 0; i < n; i++) {
+        zm_item_t it;
+        zm_item(i, &it);
+        int h = card_h(i, pos);
+        draw_card(b, y, h, &it, card_q(i, pos));
+        y += h + CARD_G;
+    }
+    if (total > SCR_H) {                                      /* полоса прокрутки */
+        int tr = SCR_H - 24, len = imax(18, tr * SCR_H / total);
+        gfx_round(b, SCR_W - 8, 12, 3, tr, 1, px_scale(th->text_dim, 120));
+        gfx_round(b, SCR_W - 8, 12 + (tr - len) * scroll / (total - SCR_H), 3, len, 1,
+                  th->accent);
+    }
+    gfx_dim(b, 0, 0, SCR_W, 5, 140);                          /* края притушены */
+    gfx_dim(b, 0, SCR_H - 5, SCR_W, 5, 140);
+}
+
 /* --- сам экран ----------------------------------------------------------- */
 #ifndef PLAT_HOST
 extern volatile int zg_cmd_app, zg_cmd_exit, zg_cmd_back;   /* app: 0 = ничего, иначе индекс+1 */
@@ -251,8 +345,11 @@ void menu_run(void)
 
         if (layout) {
             fb_begin();
-            for (band *b; (b = fb_next()); )
-                (layout == 1 ? draw_grid : draw_list)(b, n, sel, scroll);
+            for (band *b; (b = fb_next()); ) {
+                if (layout == 1)      draw_grid(b, n, sel, scroll);
+                else if (layout == 3) draw_cards(b, n, sel, pos);
+                else                  draw_list(b, n, sel, scroll);
+            }
         } else {
             /* дальние рисуем первыми, центральную — последней */
             quad qs[7];

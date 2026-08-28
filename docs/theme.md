@@ -50,7 +50,7 @@ python3 studio/zealmod.py theme mytheme        # produces mytheme.zt
 | key | what it does |
 | --- | --- |
 | `name_ru` | the caption when the firmware language is Russian |
-| `layout` | `coverflow`, `grid` or `list` |
+| `layout` | `coverflow`, `grid`, `list` or `cards` |
 | `reflection` | reflection height, % of the cover (0 turns it off) |
 | `spacing` | how far apart the covers stand |
 | `hide_title`, `hide_dots` | drop the caption / the page dots |
@@ -64,16 +64,26 @@ Colours accept `#rrggbb`, `#rgb` or `[r, g, b]`. The screen is 16-bit
 (RGB565), so shades get rounded — subtle gradients band, and clearly different
 colours look better.
 
-## Three menu styles
+## Four menu styles
 
 | `layout` | what it is |
 | --- | --- |
 | `coverflow` | covers in perspective with reflections |
 | `grid` | a 3×3 grid that scrolls |
 | `list` | a list with small covers |
+| `cards` | a list where the current item unfolds into a card |
 
-The controls are the same in all three: **◀ ▶** move, **▲** launches,
+<p align="center">
+  <img src="img/aurora-cards.png" width="180" alt="cards">
+</p>
+
+The controls are the same in all four: **◀ ▶** move, **▲** launches,
 **▼** goes back to the timer.
+
+`cards` keeps the whole list in view and gives the current program a card of
+its own: the cover grows, the title moves up to the large font, and the card
+takes the accent colour. Expanding and scrolling are driven by the same
+animated position as the cover flow, so one press is one smooth movement.
 
 ## Wallpaper and splash
 
@@ -85,6 +95,7 @@ Put these next to `theme.json`:
 <p align="center">
   <img src="img/splash-logo.png" width="180" alt="custom splash">
   <img src="img/space.png" width="180" alt="custom wallpaper">
+  <img src="img/aurora.png" width="180" alt="Aurora">
 </p>
 
 `zealmod theme` converts them to the screen format for you. A wallpaper takes
@@ -93,8 +104,12 @@ fit alongside it; Studio shows what is left at the bottom of the window.
 
 ## Where the built-in themes come from
 
-From the `themes/` directory — `mint`, `sunset`, `matrix`, `tiles` and `space`
-(the last one has a wallpaper and its own logo, as an example). They are plain
-directories with a `theme.json`; `zealmod mods` packs them into
+From the `themes/` directory — `mint`, `sunset`, `matrix`, `tiles`, `space` and
+`aurora` (the last two carry a wallpaper and their own logo). `aurora` also
+keeps the script that draws its wallpaper next to it (`make_art.py`): the
+scene is computed to match the menu's own perspective, so the reflections the
+firmware draws under the covers land in the reflection painted on the water.
+
+They are plain directories with a `theme.json`; `zealmod mods` packs them into
 `dist/themes/*.zt` along with the rest of the kit. Copy one and edit it — that
 is the easiest way to start.

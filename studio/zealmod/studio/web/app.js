@@ -205,6 +205,7 @@ function draw() {
   }
   if (S.layout === 1) return drawGrid(g, c, chosen);
   if (S.layout === 2) return drawList(g, c, chosen);
+  if (S.layout === 3) return drawCards(g, c, chosen);
   drawFlow(g, c, chosen);
 }
 
@@ -307,6 +308,83 @@ function drawList(g, c, ids) {
     g.font = '600 15px system-ui'; g.textAlign = 'left';
     g.fillText(m ? m.name : '', 54, y + 26);
   });
+}
+
+function rgb(hex) {
+  let h = String(hex).replace('#', '');
+  if (h.length === 3) h = h.replace(/./g, (ch) => ch + ch);
+  const n = parseInt(h, 16) || 0;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mixc(a, b, t) {                                 /* смешать два цвета */
+  const A = rgb(a), B = rgb(b);
+  return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+}
+
+function rrect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+/* «карточки»: то же, что рисует menu.c — текущий пункт развёрнут */
+function drawCards(g, c, ids) {
+  const sel = Math.min(Math.max(S.sel | 0, 0), ids.length - 1);
+  S.sel = sel;
+  const ROW = 36, SEL = 68, GAP = 6, X = 12, W = 208;
+  const hh = (i) => (i === sel ? SEL : ROW);
+  let total = -GAP;
+  ids.forEach((_, i) => { total += hh(i) + GAP; });
+  let before = 0;
+  for (let i = 0; i < sel; i++) before += hh(i) + GAP;
+  let scroll = before + hh(sel) / 2 - 120;
+  scroll = total <= 240 ? -(240 - total) / 2
+                        : Math.max(0, Math.min(scroll, total - 240));
+  const acc = c.accent || '#46e0bc', bot = c.bg_bot || '#0a2130';
+  let y = -scroll;
+  ids.forEach((id, i) => {
+    const on = i === sel, h = hh(i);
+    if (y < 240 && y + h > 0) {
+      if (on) {
+        rrect(g, X - 3, y - 3, W + 6, h + 6, 13);
+        g.fillStyle = hexa(acc, 0.25); g.fill();
+      }
+      rrect(g, X, y, W, h, 10);
+      g.fillStyle = mixc(mixc(bot, '#000', on ? 0.51 : 0.74), acc, on ? 0.17 : 0.03);
+      g.fill();
+      g.fillStyle = on ? acc : hexa(acc, 0.25);
+      g.fillRect(X + 5, y + h / 4, 2, h / 2);
+      const s = on ? 46 : 26, cx = X + 15, cy = y + (h - s) / 2;
+      cover(g, id, cx, cy, s, s, on ? 1 : 0.7);
+      g.strokeStyle = hexa(acc, on ? 0.8 : 0.25);
+      g.lineWidth = 1;
+      g.strokeRect(cx - 0.5, cy - 0.5, s + 1, s + 1);
+      const m = S.mods.find((x) => x.id === id);
+      g.fillStyle = on ? (c.text || '#fff') : mixc(c.text_dim || '#2f5d6b', c.text || '#fff', 0.47);
+      g.font = `${on ? '650 19px' : '600 15px'} system-ui`;
+      g.textAlign = 'left';
+      g.fillText(m ? m.name : '', cx + s + 12, y + h / 2 + (on ? 7 : 5));
+      if (on) {                                          /* значок «пуск» */
+        g.fillStyle = acc;
+        g.beginPath();
+        g.moveTo(208, y + h / 2 - 4); g.lineTo(213, y + h / 2 + 1);
+        g.lineTo(203, y + h / 2 + 1); g.closePath(); g.fill();
+      }
+    }
+    y += h + GAP;
+  });
+  if (total > 240) {
+    const tr = 216, len = Math.max(18, tr * 240 / total);
+    g.fillStyle = hexa(c.text_dim || '#2f5d6b', 0.5);
+    g.fillRect(232, 12, 3, tr);
+    g.fillStyle = acc;
+    g.fillRect(232, 12 + (tr - len) * scroll / (total - 240), 3, len);
+  }
 }
 
 /* ---------- сборка ---------- */

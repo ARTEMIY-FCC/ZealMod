@@ -1,0 +1,22 @@
+{
+  "format": "zealmod-theme/1",
+  "name": "Aurora",
+  "name_ru": "Сияние",
+  "author": "ZealMod",
+  "layout": "coverflow",
+  "reflection": 50,
+  "spacing": 94,
+  "hide_title": false,
+  "hide_dots": false,
+  "colors": {
+    "bg_top":   "#050912",
+    "bg_bot":   "#0a2130",
+    "fl_top":   "#071a26",
+    "fl_bot":   "#020609",
+    "line":     "#1d4c5c",
+    "accent":   "#46e0bc",
+    "text":     "#e8fbff",
+    "text_dim": "#2f5d6b",
+    "shadow":   "#01070c"
+  }
+}

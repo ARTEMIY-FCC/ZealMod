@@ -27,7 +27,7 @@ python3 studio/zealmod.py theme моя_тема        # получаем моя
   "name": "My theme",         имя в интерфейсе
   "name_ru": "Моя тема",      имя, когда язык прошивки русский
   "author": "я",
-  "layout": "coverflow",        coverflow | grid | list
+  "layout": "coverflow",        coverflow | grid | list | cards
   "reflection": 42,             высота отражения, % от обложки (0 — выключить)
   "spacing": 92,                насколько разнесены обложки
   "hide_title": false,          подпись под обложкой
@@ -71,6 +71,7 @@ python3 studio/zealmod.py theme моя_тема        # получаем моя
 <p align="center">
   <img src="../img/splash-logo.png" width="180" alt="своя заставка">
   <img src="../img/space.png" width="180" alt="свои обои">
+  <img src="../img/aurora.png" width="180" alt="Сияние">
 </p>
 
 `zealmod theme` сам переведёт их в формат экрана. Обои занимают 115 КБ в
@@ -79,8 +80,12 @@ python3 studio/zealmod.py theme моя_тема        # получаем моя
 
 ## Откуда берутся встроенные темы
 
-Из каталога `themes/` — там лежат `mint`, `sunset`, `matrix`, `tiles` и `space` и `space`
-(последняя — с обоями и своим логотипом, как пример). Это
-обычные каталоги с `theme.json`; `zealmod mods` пакует их в `dist/themes/*.zt`
+Из каталога `themes/` — там лежат `mint`, `sunset`, `matrix`, `tiles`, `space`
+и `aurora` (последние две — с обоями и своим логотипом). Рядом с `aurora`
+лежит и скрипт, который эти обои рисует (`make_art.py`): сцена посчитана под
+перспективу самого меню, поэтому отражения обложек, которые рисует прошивка,
+попадают в отражение, нарисованное на воде.
+
+Это обычные каталоги с `theme.json`; `zealmod mods` пакует их в `dist/themes/*.zt`
 вместе со всем остальным комплектом. Скопируйте любую и правьте — так проще
 всего начать.

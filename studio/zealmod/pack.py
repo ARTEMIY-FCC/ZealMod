@@ -161,7 +161,8 @@ def read_theme(path, lang='en'):
                    logo_w=int(src.get('logo_w', 0)), logo_h=int(src.get('logo_h', 0))), src
 
 
-LAYOUTS = {'coverflow': 0, 'обложки': 0, 'grid': 1, 'сетка': 1, 'list': 2, 'список': 2}
+LAYOUTS = {'coverflow': 0, 'обложки': 0, 'grid': 1, 'сетка': 1, 'list': 2, 'список': 2,
+           'cards': 3, 'карточки': 3}
 
 
 def theme_from_json(src, lang='en'):
