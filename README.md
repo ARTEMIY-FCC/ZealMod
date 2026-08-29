@@ -14,7 +14,7 @@ anything.
   <img src="docs/img/splash.png" width="200" alt="splash screen">
   <img src="docs/img/grid.png" width="200" alt="grid layout">
 </p>
-
+[![▶ Watch Demo](https://img.shields.io/badge/▶%20WATCH%20THE%20DEMO-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/YBtABvItJxQ?si=v7bDpVLTXOhv1a4u)
 [Русская версия](docs/ru/README.md)
 
 ## What you need
